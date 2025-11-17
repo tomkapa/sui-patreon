@@ -1,5 +1,7 @@
 ## Before Coding
 
+**MUST** remember we are working on testnet.
+
 **MUST** ask clarifying questions before implementation.
 
 **MUST** learn @docs/sui/move.md if require coding for Move language / smartcontracts.

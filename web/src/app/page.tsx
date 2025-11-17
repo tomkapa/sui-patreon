@@ -1,65 +1,62 @@
-import Image from "next/image";
+import { Sidebar } from "@/components/layout/sidebar";
+import { Header } from "@/components/layout/header";
+import { CreatorCard } from "@/components/creator/creator-card";
+import { TopicFilters } from "@/components/home/topic-filters";
+import { ScrollableSection } from "@/components/home/scrollable-section";
+import { mockCreators } from "@/lib/mock-data";
 
-export default function Home() {
+export default function HomePage() {
+  // Mock data - split creators into sections with more items
+  const recentlyVisited = mockCreators.slice(0, 6);
+  const creatorsForYou = mockCreators.slice(0, 8);
+  const popularThisWeek = mockCreators.slice(2, 10);
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+    <div className="flex min-h-screen">
+      <Sidebar />
+
+      <div className="flex-1 pl-64">
+        <Header />
+
+        <main className="p-6">
+          {/* Topic Filters */}
+          <TopicFilters />
+
+          {/* Recently Visited Section */}
+          {recentlyVisited.length > 0 && (
+            <ScrollableSection title="Recently visited">
+              {recentlyVisited.map((creator) => (
+                <CreatorCard key={creator.id} creator={creator} variant="compact" />
+              ))}
+            </ScrollableSection>
+          )}
+
+          {/* Creators For You Section */}
+          <ScrollableSection title="Creators for you" showSeeAll seeAllHref="/explore">
+            {creatorsForYou.map((creator) => (
+              <CreatorCard key={creator.id} creator={creator} variant="compact" />
+            ))}
+          </ScrollableSection>
+
+          {/* Popular This Week Section */}
+          <ScrollableSection title="Popular this week" showSeeAll seeAllHref="/explore">
+            {popularThisWeek.map((creator) => (
+              <CreatorCard key={creator.id} creator={creator} variant="compact" />
+            ))}
+          </ScrollableSection>
+
+          {/* Empty State for Non-Logged In Users */}
+          <section className="mt-12 rounded-lg border border-border bg-card p-8 text-center">
+            <h3 className="mb-2 text-lg font-semibold">Start supporting creators</h3>
+            <p className="mb-4 text-sm text-muted-foreground">
+              Connect your wallet to discover and support amazing creators on the Sui blockchain
+            </p>
+            <button className="rounded-lg bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90">
+              Connect Wallet
+            </button>
+          </section>
+        </main>
+      </div>
     </div>
   );
 }
