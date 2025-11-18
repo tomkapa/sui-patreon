@@ -5,6 +5,7 @@ import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { LoginButton } from "@/components/auth/login-button";
+import { RoleSwitcher } from "@/components/auth/role-switcher";
 
 export function Header() {
   // TODO: Check if user is authenticated via zkLogin
@@ -26,7 +27,10 @@ export function Header() {
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          {/* Role Switcher */}
+          <RoleSwitcher />
+
           {isAuthenticated ? (
             <>
               <Button variant="outline" asChild>

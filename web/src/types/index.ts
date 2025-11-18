@@ -70,3 +70,32 @@ export interface User {
   subscriptions: Subscription[];
   createdAt: Date;
 }
+
+export interface ActivityEvent {
+  id: string;
+  type: "subscription" | "revenue" | "comment" | "like" | "impression";
+  creatorAddress: string;
+  timestamp: Date;
+  metadata: {
+    amount?: number; // For revenue events
+    subscriberName?: string; // For subscription events
+    tierName?: string; // For subscription events
+    contentTitle?: string; // For engagement events
+    contentId?: string;
+  };
+}
+
+export interface CreatorAnalytics {
+  totalSubscribers: number;
+  monthlyRevenue: number; // in SUI
+  totalViews: number;
+  totalLikes: number;
+  totalComments: number;
+  totalImpressions: number;
+}
+
+export interface PostFilter {
+  type: "all" | "video" | "audio" | "image" | "text";
+  tier: "all" | string; // "all" or tier ID
+  dateRange: "all" | "today" | "week" | "month";
+}

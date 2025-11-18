@@ -7,15 +7,20 @@
     "dev": "bun --hot src/index.ts",
     "indexer": "bun --watch src/indexer.ts",
     "build": "bun build src/index.ts --outdir dist",
-    "start": "bun dist/index.js",
+    "start": "NODE_ENV=production bun src/index.ts",
     "test": "bun test",
     "lint": "eslint src --ext .ts",
     "prisma:migrate": "bunx prisma migrate dev",
     "prisma:generate": "bunx prisma generate",
     "prisma:studio": "bunx prisma studio",
+    "prisma:seed": "bun prisma/seed.ts",
     "clean": "rm -rf dist node_modules"
   },
+  "prisma": {
+    "seed": "bun prisma/seed.ts"
+  },
   "dependencies": {
+    "@mysten/seal": "0.9.4",
     "@prisma/client": "6.19.0",
     "@upstash/redis": "1.35.6",
     "cors": "2.8.5",

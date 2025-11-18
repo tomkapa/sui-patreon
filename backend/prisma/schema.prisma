@@ -1,0 +1,110 @@
+// Prisma schema for Sui Patreon platform
+// Database: PostgreSQL 15+
+// ORM: Prisma 6.19.0
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Creator model - Represents content creators on the platform
+model Creator {
+  id        String   @id @default(uuid()) @db.Uuid
+  address   String   @unique // Sui wallet address
+  profileId String   @unique // Sui object ID for on-chain profile
+  name      String   @unique // Unique creator name (e.g., SuiNS name)
+  bio       String   @default("")
+  avatarUrl String? // Optional avatar image URL
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relationships
+  tiers    Tier[]
+  contents Content[]
+
+  // Indexes for performance
+  @@index([address])
+  @@index([name])
+}
+
+// Tier model - Subscription tiers offered by creators
+model Tier {
+  id          String   @id @default(uuid()) @db.Uuid
+  tierId      String   @unique // Sui object ID for on-chain tier
+  creatorId   String   @db.Uuid
+  name        String // Tier name (e.g., "Basic", "Premium")
+  description String   @default("")
+  price       BigInt // Price in MIST (1 SUI = 1,000,000,000 MIST)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  // Relationships
+  creator       Creator        @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  subscriptions Subscription[]
+  contentTiers  ContentTier[]
+
+  // Indexes for performance
+  @@index([creatorId])
+  @@index([tierId])
+}
+
+// Subscription model - Active subscriptions from subscribers to tiers
+model Subscription {
+  id             String   @id @default(uuid()) @db.Uuid
+  subscriptionId String   @unique // Sui object ID for on-chain subscription
+  subscriber     String // Sui wallet address of subscriber
+  tierId         String   @db.Uuid
+  startsAt       DateTime // Subscription start timestamp
+  expiresAt      DateTime // Subscription expiration timestamp
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+
+  // Relationships
+  tier Tier @relation(fields: [tierId], references: [id], onDelete: Cascade)
+
+  // Indexes for performance
+  @@index([subscriber])
+  @@index([subscriptionId])
+  @@index([tierId])
+}
+
+// Content model - Content pieces created by creators
+model Content {
+  id            String   @id @default(uuid()) @db.Uuid
+  contentId     String   @unique // Sui object ID for on-chain content
+  creatorId     String   @db.Uuid
+  title         String
+  description   String   @default("")
+  contentType   String // MIME type (e.g., "video/mp4", "image/png", "text/markdown")
+  walrusBlobId  String // Walrus blob ID for encrypted content
+  previewBlobId String? // Optional Walrus blob ID for public preview
+  isPublic      Boolean  @default(false) // If true, accessible without subscription
+  createdAt     DateTime @default(now())
+
+  // Relationships
+  creator      Creator       @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  contentTiers ContentTier[]
+
+  // Indexes for performance
+  @@index([creatorId])
+  @@index([contentId])
+}
+
+// ContentTier junction table - Many-to-many relationship between Content and Tier
+model ContentTier {
+  contentId String @db.Uuid
+  tierId    String @db.Uuid
+
+  // Relationships
+  content Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  tier    Tier    @relation(fields: [tierId], references: [id], onDelete: Cascade)
+
+  // Composite primary key
+  @@id([contentId, tierId])
+  @@index([contentId])
+  @@index([tierId])
+}

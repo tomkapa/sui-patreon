@@ -3,7 +3,15 @@
  * TODO: Replace with actual blockchain data when contracts are ready
  */
 
-import { CreatorProfile, SubscriptionTier, Content, TopicCategory, User } from "@/types";
+import {
+  CreatorProfile,
+  SubscriptionTier,
+  Content,
+  TopicCategory,
+  User,
+  ActivityEvent,
+  CreatorAnalytics,
+} from "@/types";
 
 export const mockCreators: CreatorProfile[] = [
   {
@@ -298,3 +306,90 @@ export const mockTopics: TopicCategory[] = [
 ];
 
 export const mockCurrentUser: User | null = null; // User not logged in by default
+
+export const mockCreatorAnalytics: CreatorAnalytics = {
+  totalSubscribers: 0,
+  monthlyRevenue: 0,
+  totalViews: 1,
+  totalLikes: 0,
+  totalComments: 0,
+  totalImpressions: 1,
+};
+
+export const mockActivities: ActivityEvent[] = [
+  {
+    id: "activity1",
+    type: "subscription",
+    creatorAddress: "0x1234567890abcdef1234567890abcdef12345678",
+    timestamp: new Date("2024-11-15T10:30:00"),
+    metadata: {
+      subscriberName: "john.sui",
+      tierName: "Bronze Supporter",
+      amount: 5,
+    },
+  },
+  {
+    id: "activity2",
+    type: "revenue",
+    creatorAddress: "0x1234567890abcdef1234567890abcdef12345678",
+    timestamp: new Date("2024-11-15T09:15:00"),
+    metadata: {
+      amount: 50,
+    },
+  },
+  {
+    id: "activity3",
+    type: "like",
+    creatorAddress: "0x1234567890abcdef1234567890abcdef12345678",
+    timestamp: new Date("2024-11-14T16:45:00"),
+    metadata: {
+      contentTitle: "Sunset Over Cyberpunk City",
+      contentId: "content1",
+    },
+  },
+];
+
+export const mockCreatorPosts: Content[] = [
+  {
+    id: "post1",
+    creatorAddress: "0x1234567890abcdef1234567890abcdef12345678",
+    title: "Keep calm seal",
+    description: "A peaceful moment with a seal resting on ice",
+    thumbnailUrl: "https://images.unsplash.com/photo-1571752726703-5e7d1f6a986d?w=400",
+    contentType: "image",
+    blobId: "walrus_blob_seal_001",
+    tierIds: ["tier1"],
+    isPublic: false,
+    createdAt: new Date("2024-11-18"),
+    viewCount: 0,
+    likeCount: 0,
+  },
+  {
+    id: "post2",
+    creatorAddress: "0x1234567890abcdef1234567890abcdef12345678",
+    title: "Mountain Landscape Tutorial",
+    description: "Step-by-step guide to painting digital landscapes",
+    thumbnailUrl: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400",
+    contentType: "video",
+    blobId: "walrus_blob_tutorial_002",
+    tierIds: ["tier2", "tier3"],
+    isPublic: false,
+    createdAt: new Date("2024-11-17"),
+    viewCount: 234,
+    likeCount: 45,
+  },
+  {
+    id: "post3",
+    creatorAddress: "0x1234567890abcdef1234567890abcdef12345678",
+    title: "Character Design Process",
+    description: "Behind the scenes of creating a fantasy character",
+    thumbnailUrl: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=400",
+    contentType: "image",
+    blobId: "walrus_blob_character_003",
+    tierIds: ["tier1", "tier2", "tier3"],
+    isPublic: false,
+    createdAt: new Date("2024-11-16"),
+    viewCount: 567,
+    likeCount: 123,
+  },
+];
