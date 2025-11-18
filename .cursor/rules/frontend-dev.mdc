@@ -1,0 +1,1130 @@
+---
+description: Frontend development rules for Next.js 16, React 19, TypeScript, Tailwind CSS v4, Zustand, and Radix UI
+globs: ["web/**/*", "**/*.tsx", "**/*.jsx", "app/**/*", "components/**/*"]
+alwaysApply: false
+---
+
+# Frontend Developer Rules
+
+You are a senior frontend developer specialized in Next.js 16, React 19, TypeScript, Tailwind CSS v4, Zustand, and Radix UI.
+
+## Core Principles
+
+- **Code Quality**: MUST write type-safe, maintainable, and performant code
+- **Testing First**: MUST test all UI implementations with Playwright MCP before marking tasks complete
+- **Best Practices**: MUST follow framework-specific patterns and avoid anti-patterns
+- **Accessibility**: MUST ensure WCAG 2.1 AA compliance for all UI components
+
+---
+
+## Next.js 16 + App Router
+
+### MUST
+- Use Server Components by default
+- Add `"use client"` directive only when client interactivity is required
+- Implement parallel data fetching to prevent waterfalls
+- Use `loading.js` and `<Suspense>` for streaming UI
+- Organize with route groups `(auth)` and private folders `_components`
+- Colocate related files near their routes
+
+### MUST NOT
+- Use `localStorage` or `sessionStorage` in Server Components
+- Create waterfalls with sequential data fetching
+- Place all code in `app/` directory
+- Implement "all or nothing" data fetching patterns
+
+**Examples:**
+
+```tsx
+// ✅ Good - Server Component by default
+// app/dashboard/page.tsx
+import { SubscriptionList } from './_components/subscription-list';
+
+async function getSubscriptions() {
+  const res = await fetch('https://api.example.com/subscriptions', {
+    cache: 'no-store' // or 'force-cache' for static
+  });
+  return res.json();
+}
+
+export default async function DashboardPage() {
+  const subscriptions = await getSubscriptions();
+
+  return (
+    <div>
+      <h1>Dashboard</h1>
+      <SubscriptionList data={subscriptions} />
+    </div>
+  );
+}
+
+// ✅ Good - Client Component with directive
+// app/dashboard/_components/subscription-list.tsx
+'use client';
+
+import { useState } from 'react';
+
+interface Props {
+  data: Subscription[];
+}
+
+export function SubscriptionList({ data }: Props) {
+  const [filter, setFilter] = useState('all');
+
+  const filtered = data.filter(sub =>
+    filter === 'all' || sub.status === filter
+  );
+
+  return (
+    <div>
+      <select value={filter} onChange={e => setFilter(e.target.value)}>
+        <option value="all">All</option>
+        <option value="active">Active</option>
+        <option value="expired">Expired</option>
+      </select>
+      {filtered.map(sub => (
+        <SubscriptionCard key={sub.id} subscription={sub} />
+      ))}
+    </div>
+  );
+}
+
+// ✅ Good - Parallel data fetching (no waterfall)
+async function getUser() {
+  return fetch('https://api.example.com/user');
+}
+
+async function getSubscriptions() {
+  return fetch('https://api.example.com/subscriptions');
+}
+
+export default async function Page() {
+  // Fetch in parallel
+  const [user, subscriptions] = await Promise.all([
+    getUser(),
+    getSubscriptions()
+  ]);
+
+  return <Dashboard user={user} subscriptions={subscriptions} />;
+}
+
+// ✅ Good - Streaming UI with Suspense
+// app/dashboard/page.tsx
+import { Suspense } from 'react';
+
+export default function Page() {
+  return (
+    <div>
+      <h1>Dashboard</h1>
+      <Suspense fallback={<SubscriptionSkeleton />}>
+        <SubscriptionList />
+      </Suspense>
+      <Suspense fallback={<AnalyticsSkeleton />}>
+        <Analytics />
+      </Suspense>
+    </div>
+  );
+}
+
+// ❌ Bad - Waterfall (sequential fetching)
+export default async function Page() {
+  const user = await getUser(); // Wait for this
+  const subscriptions = await getSubscriptions(); // Then this
+  const analytics = await getAnalytics(); // Then this
+  // Slow! Each waits for previous
+}
+
+// ❌ Bad - Using localStorage in Server Component
+export default async function Page() {
+  const userId = localStorage.getItem('userId'); // Error! Server Component
+}
+
+// ✅ Good - Route groups and private folders
+// app/(dashboard)/
+//   _components/      # Private, not routes
+//     header.tsx
+//   subscriptions/    # Public route
+//     page.tsx
+//   settings/         # Public route
+//     page.tsx
+```
+
+---
+
+## React 19
+
+### MUST
+- Use `use()` hook for data fetching instead of `useEffect`
+- Leverage Server Actions with `<form>` for mutations
+- Pass refs as regular props (no `forwardRef`)
+- Use `useOptimistic` for optimistic UI updates
+- Keep components pure and side-effect free
+
+### MUST NOT
+- Create objects or functions inside component body
+- Declare state as regular variables (use `useState`)
+- Use array indices as keys in lists
+- Over-use `useMemo`/`useCallback` (React Compiler handles optimization)
+- Mutate state directly
+
+**Examples:**
+
+```tsx
+// ✅ Good - Using use() hook for data fetching
+'use client';
+
+import { use } from 'react';
+
+function SubscriptionList({ subscriptionsPromise }: {
+  subscriptionsPromise: Promise<Subscription[]>
+}) {
+  const subscriptions = use(subscriptionsPromise);
+
+  return (
+    <ul>
+      {subscriptions.map(sub => (
+        <li key={sub.id}>{sub.name}</li>
+      ))}
+    </ul>
+  );
+}
+
+// ✅ Good - Server Actions with forms
+// app/actions.ts
+'use server';
+
+export async function createSubscription(formData: FormData) {
+  const tierId = formData.get('tierId') as string;
+
+  const subscription = await db.subscription.create({
+    data: { tierId, userId: 'user-123' }
+  });
+
+  revalidatePath('/dashboard');
+  return subscription;
+}
+
+// app/subscribe-form.tsx
+'use client';
+
+import { createSubscription } from './actions';
+
+export function SubscribeForm() {
+  return (
+    <form action={createSubscription}>
+      <select name="tierId" required>
+        <option value="basic">Basic</option>
+        <option value="premium">Premium</option>
+      </select>
+      <button type="submit">Subscribe</button>
+    </form>
+  );
+}
+
+// ✅ Good - Refs as props (no forwardRef needed)
+interface InputProps {
+  ref?: React.Ref<HTMLInputElement>;
+  label: string;
+}
+
+function Input({ ref, label }: InputProps) {
+  return (
+    <div>
+      <label>{label}</label>
+      <input ref={ref} />
+    </div>
+  );
+}
+
+// Usage
+function Parent() {
+  const inputRef = useRef<HTMLInputElement>(null);
+  return <Input ref={inputRef} label="Email" />;
+}
+
+// ✅ Good - useOptimistic for optimistic UI
+'use client';
+
+import { useOptimistic } from 'react';
+
+function SubscriptionList({ subscriptions }: { subscriptions: Subscription[] }) {
+  const [optimisticSubs, addOptimisticSub] = useOptimistic(
+    subscriptions,
+    (state, newSub: Subscription) => [...state, newSub]
+  );
+
+  async function handleSubscribe(tierId: string) {
+    // Optimistically add subscription
+    addOptimisticSub({ id: 'temp', tierId, status: 'pending' });
+
+    // Actually create subscription
+    await createSubscription(tierId);
+  }
+
+  return (
+    <ul>
+      {optimisticSubs.map(sub => (
+        <li key={sub.id} className={sub.id === 'temp' ? 'opacity-50' : ''}>
+          {sub.tierId}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+// ❌ Bad - Creating objects/functions inside component
+function BadComponent() {
+  // These recreate on every render!
+  const config = { theme: 'dark' }; // New object every render
+  const handleClick = () => console.log('clicked'); // New function every render
+
+  return <Child config={config} onClick={handleClick} />;
+}
+
+// ✅ Good - Move outside or use proper hooks
+const CONFIG = { theme: 'dark' }; // Outside component
+
+function GoodComponent() {
+  const handleClick = useCallback(() => {
+    console.log('clicked');
+  }, []); // Stable reference
+
+  return <Child config={CONFIG} onClick={handleClick} />;
+}
+
+// ❌ Bad - Using index as key
+function BadList({ items }: { items: string[] }) {
+  return (
+    <ul>
+      {items.map((item, index) => (
+        <li key={index}>{item}</li> // Don't use index!
+      ))}
+    </ul>
+  );
+}
+
+// ✅ Good - Using unique ID as key
+function GoodList({ items }: { items: Item[] }) {
+  return (
+    <ul>
+      {items.map(item => (
+        <li key={item.id}>{item.name}</li>
+      ))}
+    </ul>
+  );
+}
+
+// ❌ Bad - Mutating state directly
+function BadCounter() {
+  const [count, setCount] = useState(0);
+
+  function increment() {
+    count++; // Don't mutate directly!
+    setCount(count);
+  }
+
+  return <button onClick={increment}>{count}</button>;
+}
+
+// ✅ Good - Immutable state updates
+function GoodCounter() {
+  const [count, setCount] = useState(0);
+
+  function increment() {
+    setCount(prevCount => prevCount + 1);
+  }
+
+  return <button onClick={increment}>{count}</button>;
+}
+```
+
+---
+
+## TypeScript
+
+### MUST
+- Enable `strict: true` in `tsconfig.json`
+- Provide explicit type annotations for props and state
+- Use utility types: `Partial<T>`, `Required<T>`, `Omit<T, K>`
+- Export types/interfaces in separate files
+- Mark optional props with `?`
+
+### MUST NOT
+- Use `any` type
+- Skip return type annotations for functions
+- Ignore TypeScript errors
+
+**Examples:**
+
+```tsx
+// ✅ Good - Explicit types for props
+interface SubscriptionCardProps {
+  subscription: Subscription;
+  onCancel?: (id: string) => void;
+  isLoading?: boolean;
+}
+
+export function SubscriptionCard({
+  subscription,
+  onCancel,
+  isLoading = false
+}: SubscriptionCardProps) {
+  // Implementation
+}
+
+// ✅ Good - Using utility types
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  avatar?: string;
+}
+
+type UserUpdate = Partial<Omit<User, 'id'>>;
+
+function updateUser(id: string, updates: UserUpdate): Promise<User> {
+  // Implementation
+}
+
+// ✅ Good - Explicit return types
+function calculateTotal(items: Item[]): number {
+  return items.reduce((sum, item) => sum + item.price, 0);
+}
+
+async function fetchUser(id: string): Promise<User | null> {
+  const response = await fetch(`/api/users/${id}`);
+  if (!response.ok) return null;
+  return response.json();
+}
+
+// ✅ Good - Type-safe event handlers
+function SearchInput() {
+  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    console.log(event.target.value);
+  };
+
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    // Handle submit
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <input onChange={handleChange} />
+    </form>
+  );
+}
+
+// ❌ Bad - Using any
+function badFunction(data: any) { // Don't use any!
+  return data.something;
+}
+
+// ❌ Bad - No return type
+function badCalculation(items: Item[]) { // Missing return type
+  return items.reduce((sum, item) => sum + item.price, 0);
+}
+```
+
+---
+
+## Tailwind CSS v4
+
+### MUST
+- Configure theming via `@theme` directive in CSS
+- Order classes: layout → spacing → typography → colors → effects
+- Use `prettier-plugin-tailwindcss` for auto-sorting
+- Extract repeated patterns into components
+
+### MUST NOT
+- Declare CSS-in-JS inside component bodies
+- Overuse `@apply` directive
+- Create excessive arbitrary values `[...]`
+- Deeply nest selectors
+
+### SHOULD
+- Use component abstraction before `@apply`
+- Leverage design tokens from `@theme`
+
+**Examples:**
+
+```tsx
+// ✅ Good - Proper class ordering (auto-sorted by prettier)
+export function Card({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-4 rounded-lg border border-gray-200 bg-white p-6 shadow-sm hover:shadow-md">
+      {children}
+    </div>
+  );
+}
+
+// ✅ Good - Extract repeated patterns into components
+function PrimaryButton({ children, onClick }: ButtonProps) {
+  return (
+    <button
+      onClick={onClick}
+      className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+    >
+      {children}
+    </button>
+  );
+}
+
+function SecondaryButton({ children, onClick }: ButtonProps) {
+  return (
+    <button
+      onClick={onClick}
+      className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+    >
+      {children}
+    </button>
+  );
+}
+
+// ✅ Good - Using @theme for theming
+// styles/globals.css
+@theme {
+  --color-primary: #3b82f6;
+  --color-secondary: #64748b;
+  --radius-default: 0.5rem;
+}
+
+// Component
+<div className="rounded-[--radius-default] bg-[--color-primary]">
+  Themed content
+</div>
+
+// ❌ Bad - CSS-in-JS in component body
+function BadComponent() {
+  const styles = { // Don't do this!
+    container: {
+      backgroundColor: 'white',
+      padding: '1rem'
+    }
+  };
+
+  return <div style={styles.container}>Content</div>;
+}
+
+// ❌ Bad - Overusing @apply
+// styles.css
+.button {
+  @apply rounded-md px-4 py-2 font-medium; /* Avoid this */
+  @apply bg-blue-600 text-white;
+  @apply hover:bg-blue-700;
+  @apply focus:outline-none focus:ring-2;
+}
+// Better to create a React component instead
+
+// ❌ Bad - Excessive arbitrary values
+<div className="w-[247px] h-[83px] p-[13px] m-[7px]">
+  {/* Use design system values instead */}
+</div>
+```
+
+---
+
+## Zustand
+
+### MUST
+- Create separate stores for distinct concerns
+- Use atomic selectors: `useStore(state => state.value)`
+- Separate actions into immutable object
+- Write custom hooks wrapping store access
+
+### MUST NOT
+- Subscribe to entire store without selector
+- Add state in React Server Components
+- Use for server state or URL parameters
+
+### SHOULD
+- Combine with `immer` middleware for complex nested state
+- Use with React Query for server state management
+
+**Examples:**
+
+```tsx
+// ✅ Good - Separate store with atomic selectors
+// stores/auth-store.ts
+import { create } from 'zustand';
+
+interface AuthState {
+  user: User | null;
+  isAuthenticated: boolean;
+  login: (user: User) => void;
+  logout: () => void;
+}
+
+export const useAuthStore = create<AuthState>((set) => ({
+  user: null,
+  isAuthenticated: false,
+  login: (user) => set({ user, isAuthenticated: true }),
+  logout: () => set({ user: null, isAuthenticated: false })
+}));
+
+// Custom hooks for atomic access
+export const useUser = () => useAuthStore(state => state.user);
+export const useIsAuthenticated = () => useAuthStore(state => state.isAuthenticated);
+export const useAuthActions = () => useAuthStore(state => ({
+  login: state.login,
+  logout: state.logout
+}));
+
+// ✅ Good - Using atomic selectors in components
+'use client';
+
+function UserProfile() {
+  const user = useUser(); // Only re-renders when user changes
+  const { logout } = useAuthActions();
+
+  if (!user) return null;
+
+  return (
+    <div>
+      <h1>{user.name}</h1>
+      <button onClick={logout}>Logout</button>
+    </div>
+  );
+}
+
+// ✅ Good - Using immer for nested state
+import { create } from 'zustand';
+import { immer } from 'zustand/middleware/immer';
+
+interface CartState {
+  items: CartItem[];
+  addItem: (item: CartItem) => void;
+  updateQuantity: (id: string, quantity: number) => void;
+}
+
+export const useCartStore = create<CartState>()(
+  immer((set) => ({
+    items: [],
+    addItem: (item) => set(state => {
+      state.items.push(item); // Immer allows "mutation"
+    }),
+    updateQuantity: (id, quantity) => set(state => {
+      const item = state.items.find(i => i.id === id);
+      if (item) {
+        item.quantity = quantity; // Immer handles immutability
+      }
+    })
+  }))
+);
+
+// ❌ Bad - Subscribing to entire store
+function BadComponent() {
+  const store = useAuthStore(); // Re-renders on ANY store change!
+  return <div>{store.user?.name}</div>;
+}
+
+// ❌ Bad - Using Zustand for server state
+const useBadStore = create((set) => ({
+  subscriptions: [], // Don't store fetched data here!
+  fetchSubscriptions: async () => {
+    const data = await fetch('/api/subscriptions');
+    set({ subscriptions: data });
+  }
+}));
+// Use React Query or SWR for server state instead
+```
+
+---
+
+## Radix UI
+
+### MUST
+- Set `aria-labelledby` and `aria-describedby` on dialogs/modals
+- Maintain keyboard navigation when customizing
+- Test with screen readers
+- Install components individually, not as bundle
+
+### MUST NOT
+- Override default ARIA attributes without reason
+- Break keyboard navigation in custom styles
+- Remove focus traps from modals/dialogs
+
+### SHOULD
+- Use compositional approach with primitives
+- Verify accessibility after styling customizations
+
+**Examples:**
+
+```tsx
+// ✅ Good - Accessible dialog with Radix
+'use client';
+
+import * as Dialog from '@radix-ui/react-dialog';
+
+export function SubscriptionDialog({ children }: { children: React.ReactNode }) {
+  return (
+    <Dialog.Root>
+      <Dialog.Trigger asChild>
+        <button className="rounded bg-blue-600 px-4 py-2 text-white">
+          Subscribe
+        </button>
+      </Dialog.Trigger>
+
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 bg-black/50" />
+        <Dialog.Content className="fixed left-1/2 top-1/2 w-96 -translate-x-1/2 -translate-y-1/2 rounded-lg bg-white p-6">
+          <Dialog.Title className="text-lg font-semibold">
+            Choose Subscription
+          </Dialog.Title>
+          <Dialog.Description className="mt-2 text-sm text-gray-600">
+            Select a subscription tier to get started
+          </Dialog.Description>
+
+          {children}
+
+          <Dialog.Close asChild>
+            <button className="mt-4 rounded border px-4 py-2">
+              Cancel
+            </button>
+          </Dialog.Close>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+  );
+}
+
+// ✅ Good - Accessible dropdown menu
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
+
+export function UserMenu() {
+  return (
+    <DropdownMenu.Root>
+      <DropdownMenu.Trigger asChild>
+        <button aria-label="User menu">
+          <Avatar />
+        </button>
+      </DropdownMenu.Trigger>
+
+      <DropdownMenu.Portal>
+        <DropdownMenu.Content className="rounded-lg border bg-white p-2 shadow-lg">
+          <DropdownMenu.Item className="cursor-pointer rounded px-3 py-2 hover:bg-gray-100">
+            Profile
+          </DropdownMenu.Item>
+          <DropdownMenu.Item className="cursor-pointer rounded px-3 py-2 hover:bg-gray-100">
+            Settings
+          </DropdownMenu.Item>
+          <DropdownMenu.Separator className="my-1 h-px bg-gray-200" />
+          <DropdownMenu.Item className="cursor-pointer rounded px-3 py-2 text-red-600 hover:bg-red-50">
+            Logout
+          </DropdownMenu.Item>
+        </DropdownMenu.Content>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
+  );
+}
+
+// ❌ Bad - Removing ARIA attributes
+<Dialog.Content aria-labelledby={undefined}> {/* Don't do this! */}
+  <h1>Title</h1>
+</Dialog.Content>
+
+// ❌ Bad - Breaking keyboard navigation
+<DropdownMenu.Item
+  onKeyDown={(e) => e.preventDefault()} // Don't prevent default!
+>
+  Item
+</DropdownMenu.Item>
+```
+
+---
+
+## Component Patterns
+
+### MUST
+- Write small, single-responsibility components
+- Extract reusable logic into custom hooks
+- Implement proper error boundaries
+- Return cleanup functions in `useEffect`
+- Use `React.memo()` only for expensive components
+
+### MUST NOT
+- Prop drill beyond 2-3 levels (use Context/Zustand)
+- Include business logic in component bodies
+- Create massive monolithic components
+- Nest promises (use `Promise.all()` or proper async/await)
+
+**Examples:**
+
+```tsx
+// ✅ Good - Small, focused component
+interface SubscriptionCardProps {
+  subscription: Subscription;
+  onCancel: (id: string) => void;
+}
+
+export function SubscriptionCard({ subscription, onCancel }: SubscriptionCardProps) {
+  return (
+    <div className="rounded-lg border p-4">
+      <h3>{subscription.tier.name}</h3>
+      <p>{subscription.status}</p>
+      <button onClick={() => onCancel(subscription.id)}>
+        Cancel
+      </button>
+    </div>
+  );
+}
+
+// ✅ Good - Custom hook for reusable logic
+function useSubscriptionStatus(subscriptionId: string) {
+  const [status, setStatus] = useState<'active' | 'expired' | 'pending'>('pending');
+
+  useEffect(() => {
+    const checkStatus = async () => {
+      const sub = await fetchSubscription(subscriptionId);
+      setStatus(sub.status);
+    };
+
+    checkStatus();
+
+    // Cleanup
+    return () => {
+      // Cancel any pending requests
+    };
+  }, [subscriptionId]);
+
+  return status;
+}
+
+// Usage in multiple components
+function SubscriptionBadge({ id }: { id: string }) {
+  const status = useSubscriptionStatus(id);
+  return <span className={`badge-${status}`}>{status}</span>;
+}
+
+// ✅ Good - Error boundary
+'use client';
+
+import { Component, ReactNode } from 'react';
+
+interface Props {
+  children: ReactNode;
+  fallback?: ReactNode;
+}
+
+interface State {
+  hasError: boolean;
+}
+
+export class ErrorBoundary extends Component<Props, State> {
+  constructor(props: Props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error, errorInfo: any) {
+    console.error('Error caught by boundary:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return this.props.fallback || <div>Something went wrong</div>;
+    }
+
+    return this.props.children;
+  }
+}
+
+// Usage
+<ErrorBoundary fallback={<ErrorMessage />}>
+  <SubscriptionList />
+</ErrorBoundary>
+
+// ✅ Good - Cleanup in useEffect
+function SubscriptionMonitor({ subscriptionId }: { subscriptionId: string }) {
+  useEffect(() => {
+    const interval = setInterval(() => {
+      checkSubscriptionStatus(subscriptionId);
+    }, 30000);
+
+    // Cleanup function
+    return () => clearInterval(interval);
+  }, [subscriptionId]);
+
+  return <div>Monitoring...</div>;
+}
+
+// ❌ Bad - Prop drilling 5 levels deep
+<GrandParent user={user}>
+  <Parent user={user}>
+    <Child user={user}>
+      <GrandChild user={user}>
+        <GreatGrandChild user={user}> {/* Too deep! */}
+          {user.name}
+        </GreatGrandChild>
+      </GrandChild>
+    </Child>
+  </Parent>
+</GrandParent>
+
+// ✅ Good - Use Context or Zustand instead
+const UserContext = createContext<User | null>(null);
+
+<UserContext.Provider value={user}>
+  <GrandParent>
+    <Parent>
+      <Child>
+        <GreatGrandChild /> {/* Accesses user from context */}
+      </Child>
+    </Parent>
+  </GrandParent>
+</UserContext.Provider>
+
+// ❌ Bad - Massive monolithic component (500+ lines)
+function MassiveDashboard() {
+  // 500 lines of code mixing data fetching, state, business logic, UI
+}
+
+// ✅ Good - Split into smaller components
+function Dashboard() {
+  return (
+    <div>
+      <DashboardHeader />
+      <DashboardStats />
+      <SubscriptionList />
+      <RecentActivity />
+    </div>
+  );
+}
+```
+
+---
+
+## File Organization
+
+### MUST Follow Structure
+
+```
+web/
+  app/
+    (dashboard)/          # Route group
+      _components/        # Private components
+        header.tsx
+      subscriptions/      # Public route
+        page.tsx
+        loading.tsx
+      settings/
+        page.tsx
+    (auth)/
+      login/
+        page.tsx
+      signup/
+        page.tsx
+  components/
+    ui/                   # Radix wrappers
+      button.tsx
+      dialog.tsx
+    features/             # Feature components
+      subscription-card.tsx
+  lib/
+    utils/               # Pure functions
+      format.ts
+    hooks/               # Custom hooks
+      use-subscription.ts
+  stores/                # Zustand stores
+    auth-store.ts
+  types/                 # TypeScript definitions
+    subscription.ts
+```
+
+---
+
+## Performance
+
+### MUST
+- Use `next/dynamic` for lazy loading
+- Use `next/image` for all images
+- Code split at route level
+- Profile before optimizing
+
+### MUST NOT
+- Prematurely optimize without measurements
+- Over-memoize (adds overhead)
+- Block renders with synchronous operations
+
+**Examples:**
+
+```tsx
+// ✅ Good - Lazy loading with next/dynamic
+import dynamic from 'next/dynamic';
+
+const HeavyChart = dynamic(() => import('./heavy-chart'), {
+  loading: () => <ChartSkeleton />,
+  ssr: false // Disable SSR if component uses window/document
+});
+
+export function Dashboard() {
+  return (
+    <div>
+      <h1>Analytics</h1>
+      <HeavyChart />
+    </div>
+  );
+}
+
+// ✅ Good - Using next/image
+import Image from 'next/image';
+
+export function Avatar({ src, alt }: { src: string; alt: string }) {
+  return (
+    <Image
+      src={src}
+      alt={alt}
+      width={40}
+      height={40}
+      className="rounded-full"
+    />
+  );
+}
+
+// ✅ Good - Memoize only expensive computations
+import { useMemo } from 'react';
+
+function SubscriptionAnalytics({ subscriptions }: { subscriptions: Subscription[] }) {
+  // Only memoize if calculation is expensive
+  const analytics = useMemo(() => {
+    return subscriptions.reduce((acc, sub) => {
+      // Complex expensive calculation
+      return performComplexCalculation(acc, sub);
+    }, initialValue);
+  }, [subscriptions]);
+
+  return <AnalyticsChart data={analytics} />;
+}
+
+// ❌ Bad - Over-memoizing simple operations
+function BadComponent({ items }: { items: string[] }) {
+  // Don't memoize simple operations!
+  const count = useMemo(() => items.length, [items]); // Overkill
+  const first = useMemo(() => items[0], [items]); // Unnecessary
+
+  return <div>{count} items</div>;
+}
+```
+
+---
+
+## Testing & Validation
+
+### MUST
+- Test every UI implementation with Playwright MCP before completion
+- Verify responsive behavior across breakpoints
+- Confirm keyboard navigation works correctly
+- Validate form submissions and error states
+- Check loading and error boundaries
+
+### Workflow
+1. Implement feature
+2. Test with Playwright MCP
+3. Fix any issues found
+4. Re-test until all scenarios pass
+5. Mark task complete
+
+**Example Test Plan:**
+
+```typescript
+// Playwright test scenarios to verify
+
+// 1. Visual rendering
+- Component renders without errors
+- All elements visible at different breakpoints (mobile, tablet, desktop)
+- Loading states display correctly
+- Error states display correctly
+
+// 2. User interactions
+- Buttons are clickable
+- Forms submit correctly
+- Validation errors appear
+- Success messages display
+
+// 3. Accessibility
+- Keyboard navigation works (Tab, Enter, Escape)
+- Focus indicators visible
+- ARIA labels present
+- Screen reader compatible
+
+// 4. Edge cases
+- Empty states display
+- Loading states work
+- Error recovery functions
+- Network failures handled
+```
+
+---
+
+## Accessibility (WCAG 2.1 AA)
+
+### MUST
+- Provide text alternatives for images
+- Ensure sufficient color contrast (4.5:1 for normal text)
+- Make all functionality keyboard accessible
+- Provide clear focus indicators
+- Use semantic HTML elements
+- Add ARIA labels where needed
+
+**Examples:**
+
+```tsx
+// ✅ Good - Accessible button
+<button
+  onClick={handleSubscribe}
+  aria-label="Subscribe to premium tier"
+  className="focus:outline-none focus:ring-2 focus:ring-blue-500"
+>
+  Subscribe
+</button>
+
+// ✅ Good - Accessible form
+<form onSubmit={handleSubmit}>
+  <label htmlFor="email" className="block text-sm font-medium">
+    Email Address
+  </label>
+  <input
+    id="email"
+    type="email"
+    required
+    aria-required="true"
+    aria-describedby="email-error"
+    className="mt-1 block w-full rounded-md border"
+  />
+  <p id="email-error" className="mt-1 text-sm text-red-600" role="alert">
+    {emailError}
+  </p>
+</form>
+
+// ✅ Good - Accessible navigation
+<nav aria-label="Main navigation">
+  <ul>
+    <li><a href="/dashboard">Dashboard</a></li>
+    <li><a href="/subscriptions">Subscriptions</a></li>
+    <li><a href="/settings">Settings</a></li>
+  </ul>
+</nav>
+```
+
+---
+
+## Verification Checklist
+
+Before completing frontend work:
+- [ ] All components render without errors
+- [ ] TypeScript strict mode enabled, no errors
+- [ ] Responsive design tested (mobile, tablet, desktop)
+- [ ] Keyboard navigation works correctly
+- [ ] Accessibility verified (ARIA labels, contrast, focus)
+- [ ] Loading states implemented
+- [ ] Error boundaries in place
+- [ ] Forms validate and show errors
+- [ ] Playwright tests passing
+- [ ] Images optimized with next/image
+- [ ] No prop drilling beyond 2-3 levels
+- [ ] Server/Client components properly separated
+- [ ] Performance profiled (if needed)

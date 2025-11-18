@@ -6,6 +6,13 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import { prisma } from './lib/prisma';
 
+// Import routers
+import creatorsRouter from './routes/creators';
+import tiersRouter from './routes/tiers';
+import subscriptionsRouter from './routes/subscriptions';
+import contentRouter from './routes/content';
+import uploadRouter from './routes/upload';
+
 // Load environment variables
 dotenv.config();
 
@@ -48,6 +55,13 @@ app.get('/health', async (_req: Request, res: Response) => {
     });
   }
 });
+
+// Mount API routes
+app.use('/api/creators', creatorsRouter);
+app.use('/api/tiers', tiersRouter);
+app.use('/api/subscriptions', subscriptionsRouter);
+app.use('/api/content', contentRouter);
+app.use('/api', uploadRouter); // Upload/download routes
 
 // Global error handler middleware
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {

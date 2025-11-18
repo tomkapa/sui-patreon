@@ -1,0 +1,578 @@
+---
+description: SOLID principles and core development guidelines for all code
+globs: ["**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx", "**/*.move"]
+alwaysApply: true
+---
+
+# Development Principles
+
+## Critical Environment Reminder
+
+**ALWAYS REMEMBER: We are working on TESTNET, not mainnet.**
+
+## Before Any Implementation
+
+### MUST Do First
+
+1. **Ask clarifying questions** - Never assume requirements
+2. **Learn required documentation** based on the task:
+   - Smart contracts/Move → @docs/sui/move.md
+   - SuiNS integration → @docs/sui/suins.md
+   - zkLogin authentication → @docs/sui/zkLogin.md
+   - Seal encryption → @docs/sui/seal.md
+   - Walrus storage → @docs/sui/walrus.md
+
+3. **For complex work**:
+   - Draft approach BEFORE coding
+   - Present pros/cons if multiple approaches exist
+   - Wait for confirmation before proceeding
+
+4. **Research new technology**:
+   - Search official documentation FIRST
+   - Find common usage patterns
+   - Review example implementations
+   - Identify known limitations
+   - NEVER start coding unfamiliar tech without research
+
+---
+
+## SOLID Principles
+
+**MUST follow SOLID in all code**
+
+### 1. Single Responsibility Principle (SRP)
+
+**One class/function = one reason to change**
+
+```typescript
+// ✅ Good - Each class has one responsibility
+class UserRepository {
+  async findById(id: string): Promise<User> { /* ... */ }
+  async save(user: User): Promise<void> { /* ... */ }
+}
+
+class UserValidator {
+  validate(user: User): ValidationResult { /* ... */ }
+}
+
+class EmailService {
+  async sendWelcomeEmail(user: User): Promise<void> { /* ... */ }
+}
+
+// ❌ Bad - Multiple responsibilities in one class
+class UserManager {
+  async findById(id: string): Promise<User> { /* ... */ }
+  validate(user: User): ValidationResult { /* ... */ }
+  async sendWelcomeEmail(user: User): Promise<void> { /* ... */ }
+  async generateReport(user: User): Promise<Report> { /* ... */ }
+}
+```
+
+### 2. Open/Closed Principle (OCP)
+
+**Extend via composition/interfaces, not modification**
+
+```typescript
+// ✅ Good - Open for extension, closed for modification
+interface PaymentProcessor {
+  process(amount: number): Promise<void>;
+}
+
+class CryptoPaymentProcessor implements PaymentProcessor {
+  async process(amount: number): Promise<void> {
+    // Crypto-specific logic
+  }
+}
+
+class FiatPaymentProcessor implements PaymentProcessor {
+  async process(amount: number): Promise<void> {
+    // Fiat-specific logic
+  }
+}
+
+class PaymentService {
+  constructor(private processor: PaymentProcessor) {}
+
+  async processPayment(amount: number) {
+    return this.processor.process(amount);
+  }
+}
+
+// ❌ Bad - Must modify class to add new payment types
+class PaymentService {
+  async processPayment(type: string, amount: number) {
+    if (type === 'crypto') {
+      // Crypto logic
+    } else if (type === 'fiat') {
+      // Fiat logic
+    }
+    // Adding new type requires modifying this function
+  }
+}
+```
+
+### 3. Liskov Substitution Principle (LSP)
+
+**Subtypes must honor base contracts**
+
+```typescript
+// ✅ Good - Subtypes are fully substitutable
+interface Storage {
+  save(key: string, value: string): Promise<void>;
+  get(key: string): Promise<string | null>;
+}
+
+class WalrusStorage implements Storage {
+  async save(key: string, value: string): Promise<void> {
+    // Walrus implementation
+  }
+  async get(key: string): Promise<string | null> {
+    // Walrus implementation
+  }
+}
+
+class LocalStorage implements Storage {
+  async save(key: string, value: string): Promise<void> {
+    // Local implementation
+  }
+  async get(key: string): Promise<string | null> {
+    // Local implementation
+  }
+}
+
+// Both can be used interchangeably
+function useStorage(storage: Storage) {
+  await storage.save('key', 'value');
+  const value = await storage.get('key');
+}
+
+// ❌ Bad - Breaks LSP by throwing on inherited method
+class ReadOnlyStorage implements Storage {
+  async save(key: string, value: string): Promise<void> {
+    throw new Error('Read-only storage'); // Violates contract
+  }
+  async get(key: string): Promise<string | null> {
+    // Implementation
+  }
+}
+```
+
+### 4. Interface Segregation Principle (ISP)
+
+**Focused interfaces, no unused dependencies**
+
+```typescript
+// ✅ Good - Focused, segregated interfaces
+interface Readable {
+  read(): Promise<string>;
+}
+
+interface Writable {
+  write(data: string): Promise<void>;
+}
+
+interface Deletable {
+  delete(): Promise<void>;
+}
+
+// Classes implement only what they need
+class FileReader implements Readable {
+  async read(): Promise<string> { /* ... */ }
+}
+
+class FileWriter implements Writable {
+  async write(data: string): Promise<void> { /* ... */ }
+}
+
+class FileManager implements Readable, Writable, Deletable {
+  async read(): Promise<string> { /* ... */ }
+  async write(data: string): Promise<void> { /* ... */ }
+  async delete(): Promise<void> { /* ... */ }
+}
+
+// ❌ Bad - Fat interface forcing unused methods
+interface FileOperations {
+  read(): Promise<string>;
+  write(data: string): Promise<void>;
+  delete(): Promise<void>;
+  compress(): Promise<void>;
+  encrypt(): Promise<void>;
+}
+
+// Forces implementation of unused methods
+class LogReader implements FileOperations {
+  async read(): Promise<string> { /* ... */ }
+  async write(): Promise<void> { throw new Error('Not supported'); }
+  async delete(): Promise<void> { throw new Error('Not supported'); }
+  async compress(): Promise<void> { throw new Error('Not supported'); }
+  async encrypt(): Promise<void> { throw new Error('Not supported'); }
+}
+```
+
+### 5. Dependency Inversion Principle (DIP)
+
+**Inject dependencies, depend on abstractions**
+
+```typescript
+// ✅ Good - Depend on abstractions, inject dependencies
+interface Database {
+  query(sql: string, params: any[]): Promise<any>;
+}
+
+interface Logger {
+  log(message: string): void;
+  error(message: string, error: Error): void;
+}
+
+class SubscriptionService {
+  constructor(
+    private readonly db: Database,
+    private readonly logger: Logger
+  ) {}
+
+  async getSubscription(id: string) {
+    try {
+      return await this.db.query(
+        'SELECT * FROM subscriptions WHERE id = $1',
+        [id]
+      );
+    } catch (error) {
+      this.logger.error('Failed to get subscription', error);
+      throw error;
+    }
+  }
+}
+
+// Inject concrete implementations
+const service = new SubscriptionService(
+  new PostgresDatabase(),
+  new ConsoleLogger()
+);
+
+// ❌ Bad - Depend on concrete implementations, hard-coded
+class SubscriptionService {
+  private db = new PostgresDatabase(); // Hard-coded dependency
+  private logger = new ConsoleLogger(); // Hard-coded dependency
+
+  async getSubscription(id: string) {
+    return this.db.query('SELECT * FROM subscriptions WHERE id = $1', [id]);
+  }
+}
+```
+
+---
+
+## Additional Core Principles
+
+### Function vs Class
+
+**MUST NOT create classes when functions suffice**
+
+```typescript
+// ✅ Good - Simple function
+function validateEmail(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function calculateDiscount(price: number, percentage: number): number {
+  return price * (percentage / 100);
+}
+
+// ❌ Bad - Unnecessary class for stateless operations
+class EmailValidator {
+  validate(email: string): boolean {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  }
+}
+
+class DiscountCalculator {
+  calculate(price: number, percentage: number): number {
+    return price * (percentage / 100);
+  }
+}
+```
+
+### Composition Over Inheritance
+
+**SHOULD use composition over inheritance**
+
+```typescript
+// ✅ Good - Composition
+class Logger {
+  log(message: string): void {
+    console.log(`[${new Date().toISOString()}] ${message}`);
+  }
+}
+
+class EmailSender {
+  send(to: string, subject: string, body: string): void {
+    // Email sending logic
+  }
+}
+
+class UserService {
+  constructor(
+    private readonly logger: Logger,
+    private readonly emailSender: EmailSender
+  ) {}
+
+  async createUser(userData: UserData) {
+    this.logger.log('Creating user...');
+    // Create user logic
+    this.emailSender.send(userData.email, 'Welcome!', 'Welcome to our platform');
+  }
+}
+
+// ❌ Bad - Deep inheritance hierarchy
+class BaseService {
+  log(message: string): void {
+    console.log(message);
+  }
+}
+
+class EmailService extends BaseService {
+  send(to: string, message: string): void {
+    this.log(`Sending email to ${to}`);
+    // Send logic
+  }
+}
+
+class UserService extends EmailService {
+  // Inherits everything from both BaseService and EmailService
+  // Tight coupling, hard to test, hard to modify
+}
+```
+
+### Dependency Injection
+
+**MUST inject dependencies, MUST NOT instantiate them directly**
+
+```typescript
+// ✅ Good - Dependencies injected
+class ContentService {
+  constructor(
+    private readonly walrusClient: WalrusClient,
+    private readonly sealClient: SealClient,
+    private readonly db: Database
+  ) {}
+
+  async uploadContent(data: Buffer): Promise<string> {
+    const encrypted = await this.sealClient.encrypt(data);
+    const blobId = await this.walrusClient.upload(encrypted);
+    await this.db.saveContentMetadata({ blobId });
+    return blobId;
+  }
+}
+
+// Easy to test with mocks
+const mockWalrus = { upload: jest.fn() };
+const mockSeal = { encrypt: jest.fn() };
+const mockDb = { saveContentMetadata: jest.fn() };
+
+const service = new ContentService(mockWalrus, mockSeal, mockDb);
+
+// ❌ Bad - Direct instantiation
+class ContentService {
+  private walrusClient = new WalrusClient();
+  private sealClient = new SealClient();
+  private db = new PostgresDatabase();
+
+  // Hard to test, tightly coupled, can't swap implementations
+}
+```
+
+---
+
+## Code Quality Principles
+
+### Self-Documenting Code
+
+**MUST write self-documenting code with clear names**
+
+```typescript
+// ✅ Good - Clear, descriptive names
+function calculateMonthlySubscriptionRevenue(
+  subscriptions: Subscription[],
+  targetMonth: Date
+): number {
+  const activeSubscriptionsInMonth = subscriptions.filter(subscription =>
+    isSubscriptionActiveInMonth(subscription, targetMonth)
+  );
+
+  return activeSubscriptionsInMonth.reduce(
+    (totalRevenue, subscription) => totalRevenue + subscription.tier.pricePerMonth,
+    0
+  );
+}
+
+// ❌ Bad - Cryptic, unclear names
+function calc(s: any[], m: Date): number {
+  return s.filter(x => chk(x, m)).reduce((t, x) => t + x.t.p, 0);
+}
+```
+
+### Use Existing Domain Vocabulary
+
+**MUST use existing domain vocabulary in naming**
+
+```typescript
+// Review codebase for established terms
+
+// ✅ Good - Project uses "tier" not "plan"
+class SubscriptionTier {
+  id: string;
+  name: string;
+  price: number;
+}
+
+// ❌ Bad - Inconsistent with codebase
+class SubscriptionPlan {
+  id: string;
+  name: string;
+  price: number;
+}
+
+// ✅ Good - Project uses "creator" not "author"
+interface Creator {
+  suinsName: string;
+  displayName: string;
+}
+
+// ❌ Bad - Inconsistent terminology
+interface Author {
+  username: string;
+  name: string;
+}
+```
+
+### Prefer Simple, Composable Functions
+
+**SHOULD prefer simple, composable, testable functions**
+
+```typescript
+// ✅ Good - Small, focused, composable functions
+function isSubscriptionActive(subscription: Subscription): boolean {
+  return subscription.status === 'active';
+}
+
+function isSubscriptionExpired(subscription: Subscription, currentDate: Date): boolean {
+  return subscription.expiresAt < currentDate;
+}
+
+function hasRequiredTier(subscription: Subscription, requiredTierId: string): boolean {
+  return subscription.tier.id === requiredTierId;
+}
+
+function canAccessContent(
+  subscription: Subscription,
+  contentTierId: string,
+  currentDate: Date
+): boolean {
+  return (
+    isSubscriptionActive(subscription) &&
+    !isSubscriptionExpired(subscription, currentDate) &&
+    hasRequiredTier(subscription, contentTierId)
+  );
+}
+
+// Each function is testable in isolation
+// Easy to understand, easy to maintain
+
+// ❌ Bad - Monolithic function
+function checkAccess(sub: any, tier: string): boolean {
+  if (
+    sub.status === 'active' &&
+    sub.expiresAt >= new Date() &&
+    sub.tier.id === tier &&
+    sub.user.verified &&
+    !sub.user.banned &&
+    sub.paymentStatus === 'paid' &&
+    sub.autoRenew === true
+  ) {
+    return true;
+  }
+  return false;
+}
+```
+
+### Breaking Changes
+
+**MUST NOT break existing features**
+
+Avoid backwards-compatibility hacks:
+- Don't rename unused variables to `_vars`
+- Don't add `// removed` comments for deleted code
+- Don't re-export types unnecessarily
+- If something is unused, **delete it completely**
+
+---
+
+## Move Language SOLID Principles
+
+### Single Responsibility in Move
+
+```move
+// ✅ Good - Separate modules for different responsibilities
+module creator_platform::subscription {
+    // Handles subscription logic only
+}
+
+module creator_platform::payment {
+    // Handles payment logic only
+}
+
+module creator_platform::access_control {
+    // Handles access control only
+}
+
+// ❌ Bad - Everything in one module
+module creator_platform::everything {
+    // Subscriptions, payments, access control all mixed together
+}
+```
+
+### Dependency Inversion in Move
+
+```move
+// ✅ Good - Use capabilities for access control
+module creator_platform::subscription {
+    use creator_platform::payment::PaymentCapability;
+
+    public fun create_subscription(
+        _payment_cap: &PaymentCapability,
+        tier_id: ID,
+        ctx: &mut TxContext
+    ) {
+        // Payment capability proves payment was verified
+    }
+}
+
+// ❌ Bad - Direct coupling
+module creator_platform::subscription {
+    use creator_platform::payment;
+
+    public fun create_subscription(tier_id: ID, ctx: &mut TxContext) {
+        // Directly calling payment module without abstraction
+        payment::verify_payment(tier_id);
+    }
+}
+```
+
+---
+
+## Verification Checklist
+
+Before completing any code:
+- [ ] Single Responsibility: Each class/function has one reason to change
+- [ ] Open/Closed: Extended via composition, not modification
+- [ ] Liskov Substitution: Subtypes honor base contracts
+- [ ] Interface Segregation: Interfaces are focused and cohesive
+- [ ] Dependency Inversion: Dependencies injected, not instantiated
+- [ ] Functions used instead of classes where appropriate
+- [ ] Composition preferred over inheritance
+- [ ] Dependencies are injected
+- [ ] Code is self-documenting with clear names
+- [ ] Domain vocabulary is consistent
+- [ ] Functions are small and composable
+- [ ] No breaking changes to existing features
+- [ ] Security vulnerabilities addressed

@@ -1,0 +1,991 @@
+---
+description: Backend development rules for Bun, Express 5, TypeScript, Prisma 6, Redis, and Sui blockchain integration
+globs: ["backend/**/*", "**/*.api.ts", "**/*.service.ts", "**/*.controller.ts", "**/*.repository.ts"]
+alwaysApply: false
+---
+
+# Backend Developer Rules
+
+You are a senior backend developer specialized in Bun, Express 5, TypeScript, Prisma 6, Redis, and Sui blockchain integration.
+
+## Core Principles
+
+- **Security First**: MUST validate all inputs, sanitize outputs, and protect against common vulnerabilities
+- **Type Safety**: MUST leverage TypeScript strict mode for all code
+- **Performance**: MUST optimize database queries, implement caching strategies, and handle concurrency
+- **Testing**: MUST test all API endpoints and business logic before marking tasks complete
+- **Error Handling**: MUST implement proper error handling and logging throughout
+
+---
+
+## Bun Runtime
+
+### MUST
+- Use Bun native APIs when available (`Bun.file()`, `Bun.password`, `Bun.serve()`)
+- Leverage Bun's fast startup for dev workflows with `bun --watch`
+- Use `bun test` for testing instead of Jest
+- Take advantage of built-in TypeScript support
+
+### MUST NOT
+- Mix Node.js-specific APIs without compatibility checks
+- Ignore Bun's performance optimizations
+- Use deprecated Node.js patterns
+
+### SHOULD
+- Prefer Bun's native modules over npm alternatives when available
+- Use `bunfig.toml` for Bun-specific configuration
+
+**Examples:**
+
+```typescript
+// ✅ Good - Using Bun native APIs
+import { password } from 'bun';
+
+async function hashPassword(plaintext: string): Promise<string> {
+  return await password.hash(plaintext);
+}
+
+async function verifyPassword(plaintext: string, hash: string): Promise<boolean> {
+  return await password.verify(plaintext, hash);
+}
+
+// ✅ Good - Using Bun file API
+const file = Bun.file('data.json');
+const contents = await file.json();
+
+// ❌ Bad - Using Node.js fs when Bun has native alternative
+import fs from 'fs/promises';
+const contents = await fs.readFile('data.json', 'utf-8');
+```
+
+---
+
+## Express 5.1.0
+
+### MUST
+- Implement proper error handling middleware as last middleware
+- Use async/await with try-catch or express-async-errors
+- Apply rate limiting on public endpoints
+- Implement request validation middleware
+- Use helmet for security headers
+- Enable CORS with explicit origin configuration
+- Structure routes modularly in `/routes` directory
+
+### MUST NOT
+- Use synchronous operations in request handlers
+- Expose stack traces in production errors
+- Trust user input without validation
+- Skip error handling middleware
+- Use `app.use('*')` wildly without specific error handlers
+
+### SHOULD
+- Use middleware in order: helmet → cors → json parser → routes → error handler
+- Implement request logging (morgan or custom)
+- Use compression middleware for responses
+- Separate route handlers, services, and data access layers
+
+**Examples:**
+
+```typescript
+// ✅ Good - Proper Express setup
+import express from 'express';
+import helmet from 'helmet';
+import cors from 'cors';
+import rateLimit from 'express-rate-limit';
+
+const app = express();
+
+// 1. Security headers
+app.use(helmet());
+
+// 2. CORS with explicit origin
+app.use(cors({
+  origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000'],
+  credentials: true
+}));
+
+// 3. JSON parsing
+app.use(express.json());
+
+// 4. Rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100 // limit each IP to 100 requests per windowMs
+});
+app.use('/api/', limiter);
+
+// 5. Routes
+app.use('/api/v1/users', userRoutes);
+app.use('/api/v1/subscriptions', subscriptionRoutes);
+
+// 6. Error handling (MUST be last)
+app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+  logger.error(err);
+
+  const statusCode = (err as any).statusCode || 500;
+  const message = process.env.NODE_ENV === 'production'
+    ? 'Internal Server Error'
+    : err.message;
+
+  res.status(statusCode).json({
+    success: false,
+    error: message
+  });
+});
+
+// ❌ Bad - No error handling, no security headers, synchronous operations
+app.get('/users', (req, res) => {
+  const users = JSON.parse(fs.readFileSync('users.json', 'utf-8')); // Synchronous!
+  res.json(users); // No error handling!
+});
+```
+
+---
+
+## TypeScript
+
+### MUST
+- Enable `strict: true` in `tsconfig.json`
+- Define explicit types for all function parameters and returns
+- Use shared types from `@sui-patreon/types` workspace package
+- Export types for DTOs, request/response objects
+- Use `unknown` instead of `any` for uncertain types
+
+### MUST NOT
+- Use `any` type
+- Skip type definitions for third-party modules
+- Ignore TypeScript errors in production code
+- Use type assertions (`as`) excessively
+
+### SHOULD
+- Use discriminated unions for error types
+- Define branded types for IDs and sensitive data
+- Use `zod` or similar for runtime validation
+
+**Examples:**
+
+```typescript
+// ✅ Good - Explicit types, no any
+import { z } from 'zod';
+
+const CreateUserSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(8),
+  name: z.string().min(1)
+});
+
+type CreateUserDTO = z.infer<typeof CreateUserSchema>;
+
+interface UserResponse {
+  id: string;
+  email: string;
+  name: string;
+  createdAt: Date;
+}
+
+async function createUser(data: CreateUserDTO): Promise<UserResponse> {
+  // Implementation
+}
+
+// ✅ Good - Branded types for IDs
+type UserId = string & { readonly __brand: 'UserId' };
+type SubscriptionId = string & { readonly __brand: 'SubscriptionId' };
+
+function createUserId(id: string): UserId {
+  return id as UserId;
+}
+
+// ✅ Good - Discriminated unions for errors
+type Result<T> =
+  | { success: true; data: T }
+  | { success: false; error: string };
+
+async function getUser(id: UserId): Promise<Result<UserResponse>> {
+  try {
+    const user = await prisma.user.findUnique({ where: { id } });
+    if (!user) {
+      return { success: false, error: 'User not found' };
+    }
+    return { success: true, data: user };
+  } catch (error) {
+    return { success: false, error: 'Database error' };
+  }
+}
+
+// ❌ Bad - Using any
+async function createUser(data: any): Promise<any> {
+  // No type safety!
+}
+```
+
+---
+
+## Prisma 6
+
+### MUST
+- Generate Prisma Client after schema changes: `prisma generate`
+- Use migrations for schema changes: `prisma migrate dev`
+- Implement proper transaction handling with `$transaction`
+- Use Prisma's connection pooling correctly
+- Include/select only needed fields to avoid over-fetching
+- Use prepared statements (Prisma does this by default)
+
+### MUST NOT
+- Expose Prisma errors directly to clients
+- Use raw SQL without parameterization
+- Skip migrations in production
+- Create N+1 query problems
+- Mutate data without transactions when consistency matters
+
+### SHOULD
+- Use `prisma.$queryRaw` only when necessary
+- Implement soft deletes with `deletedAt` field
+- Use Prisma's pagination with `skip` and `take`
+- Leverage `findUnique` over `findFirst` when applicable
+- Index frequently queried fields
+
+**Critical Patterns:**
+
+```typescript
+// ✅ Good - Transaction pattern
+async function createSubscription(userId: string, tierId: string) {
+  return await prisma.$transaction(async (tx) => {
+    // Create subscription
+    const subscription = await tx.subscription.create({
+      data: {
+        userId,
+        tierId,
+        status: 'active',
+        startDate: new Date()
+      }
+    });
+
+    // Update user's subscription count
+    await tx.user.update({
+      where: { id: userId },
+      data: { subscriptionCount: { increment: 1 } }
+    });
+
+    return subscription;
+  });
+}
+
+// ✅ Good - Avoid N+1 with include
+async function getUsersWithSubscriptions() {
+  return await prisma.user.findMany({
+    include: {
+      subscriptions: {
+        include: {
+          tier: true
+        }
+      }
+    }
+  });
+}
+
+// ✅ Good - Pagination
+async function getSubscriptions(page: number, limit: number) {
+  const results = await prisma.subscription.findMany({
+    skip: (page - 1) * limit,
+    take: limit,
+    orderBy: { createdAt: 'desc' },
+    select: {
+      id: true,
+      status: true,
+      createdAt: true,
+      tier: {
+        select: {
+          name: true,
+          price: true
+        }
+      }
+    }
+  });
+
+  const total = await prisma.subscription.count();
+
+  return {
+    data: results,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit)
+    }
+  };
+}
+
+// ❌ Bad - N+1 query problem
+async function getUsersWithSubscriptions() {
+  const users = await prisma.user.findMany();
+
+  for (const user of users) {
+    // This creates N queries!
+    user.subscriptions = await prisma.subscription.findMany({
+      where: { userId: user.id }
+    });
+  }
+
+  return users;
+}
+
+// ❌ Bad - No transaction for related operations
+async function createSubscription(userId: string, tierId: string) {
+  const subscription = await prisma.subscription.create({ /* ... */ });
+  // If this fails, subscription is already created!
+  await prisma.user.update({ /* ... */ });
+}
+```
+
+---
+
+## Redis Caching
+
+### MUST
+- Use connection pooling (ioredis handles this)
+- Implement cache invalidation strategy
+- Set TTL on all cached values
+- Handle Redis connection failures gracefully
+- Use pipeline for bulk operations
+
+### MUST NOT
+- Store sensitive data unencrypted
+- Use Redis as primary database
+- Block event loop with synchronous Redis calls
+- Cache without expiration
+
+### SHOULD
+- Use Upstash Redis for serverless/edge scenarios
+- Use ioredis for traditional server deployments
+- Implement cache-aside pattern for reads
+- Use Redis pub/sub for real-time features
+- Prefix cache keys by context: `user:${id}:profile`
+
+**Caching Strategy:**
+
+```typescript
+// ✅ Good - Cache-aside pattern with TTL
+import Redis from 'ioredis';
+
+const redis = new Redis(process.env.REDIS_URL);
+
+async function getUserProfile(userId: string) {
+  const cacheKey = `user:${userId}:profile`;
+  const TTL = 60 * 5; // 5 minutes
+
+  // Try cache first
+  const cached = await redis.get(cacheKey);
+  if (cached) {
+    return JSON.parse(cached);
+  }
+
+  // Cache miss - fetch from database
+  const profile = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      avatar: true
+    }
+  });
+
+  if (!profile) {
+    throw new Error('User not found');
+  }
+
+  // Store in cache with TTL
+  await redis.setex(cacheKey, TTL, JSON.stringify(profile));
+
+  return profile;
+}
+
+// ✅ Good - Cache invalidation
+async function updateUserProfile(userId: string, updates: Partial<User>) {
+  const user = await prisma.user.update({
+    where: { id: userId },
+    data: updates
+  });
+
+  // Invalidate cache
+  await redis.del(`user:${userId}:profile`);
+
+  return user;
+}
+
+// ✅ Good - Pipeline for bulk operations
+async function cacheMultipleUsers(users: User[]) {
+  const pipeline = redis.pipeline();
+
+  for (const user of users) {
+    const key = `user:${user.id}:profile`;
+    pipeline.setex(key, 300, JSON.stringify(user));
+  }
+
+  await pipeline.exec();
+}
+
+// ✅ Good - Graceful failure handling
+async function getCachedData(key: string) {
+  try {
+    return await redis.get(key);
+  } catch (error) {
+    logger.warn('Redis connection failed, falling back to database', { error });
+    // Fallback to database or return null
+    return null;
+  }
+}
+```
+
+---
+
+## Sui Blockchain Integration
+
+### MUST
+- Validate all blockchain addresses and transaction hashes
+- Implement retry logic with exponential backoff for RPC calls
+- Handle blockchain reorganizations in indexer
+- Store blockchain event cursor/checkpoint for resumption
+- Validate event signatures and data integrity
+
+### MUST NOT
+- Trust blockchain data without verification
+- Process events without idempotency checks
+- Expose private keys or mnemonics
+- Skip error handling for RPC failures
+
+### SHOULD
+- Use custom indexer service for event processing (`src/indexer.ts`)
+- Implement event replay protection
+- Cache blockchain queries when possible
+- Use websocket subscriptions for real-time events
+- Separate indexer process from API server
+
+**Indexer Pattern:**
+
+```typescript
+// ✅ Good - Idempotent event processing
+import { SuiClient } from '@mysten/sui/client';
+
+interface ProcessedEvent {
+  eventId: string;
+  processedAt: Date;
+}
+
+async function processSubscriptionEvent(event: SuiEvent) {
+  const eventId = `${event.id.txDigest}-${event.id.eventSeq}`;
+
+  // Check if already processed (idempotency)
+  const processed = await prisma.processedEvent.findUnique({
+    where: { eventId }
+  });
+
+  if (processed) {
+    logger.info('Event already processed, skipping', { eventId });
+    return;
+  }
+
+  // Process event in transaction
+  await prisma.$transaction(async (tx) => {
+    // Extract event data
+    const { subscriber, tierId, expiresAt } = event.parsedJson;
+
+    // Create subscription in database
+    await tx.subscription.create({
+      data: {
+        userId: subscriber,
+        tierId,
+        expiresAt: new Date(parseInt(expiresAt)),
+        status: 'active',
+        blockchainEventId: eventId
+      }
+    });
+
+    // Mark event as processed
+    await tx.processedEvent.create({
+      data: {
+        eventId,
+        eventType: 'SubscriptionCreated',
+        processedAt: new Date()
+      }
+    });
+  });
+
+  logger.info('Event processed successfully', { eventId });
+}
+
+// ✅ Good - Retry logic with exponential backoff
+async function fetchWithRetry<T>(
+  fn: () => Promise<T>,
+  maxRetries = 3
+): Promise<T> {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      if (attempt === maxRetries - 1) throw error;
+
+      const delay = Math.pow(2, attempt) * 1000; // Exponential backoff
+      logger.warn(`Retry attempt ${attempt + 1} after ${delay}ms`, { error });
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+
+  throw new Error('Max retries exceeded');
+}
+
+// Usage
+const events = await fetchWithRetry(() =>
+  suiClient.queryEvents({
+    query: { MoveEventType: `${PACKAGE_ID}::subscription::SubscriptionCreated` }
+  })
+);
+```
+
+---
+
+## API Design
+
+### MUST
+- Use RESTful conventions: GET, POST, PUT, DELETE
+- Return consistent response format:
+  ```typescript
+  { success: boolean, data?: T, error?: string }
+  ```
+- Implement proper HTTP status codes
+- Validate request body/params/query with middleware
+- Implement API versioning (`/api/v1/`)
+- Document endpoints with OpenAPI/Swagger
+
+### MUST NOT
+- Return different response structures per endpoint
+- Use GET for state-changing operations
+- Expose internal error details to clients
+- Skip input validation
+
+### SHOULD
+- Use DTOs for request/response transformation
+- Implement pagination for list endpoints
+- Support filtering and sorting via query params
+- Use HTTP 429 for rate limiting
+
+**Examples:**
+
+```typescript
+// ✅ Good - Consistent API design
+import { Router } from 'express';
+import { z } from 'zod';
+
+const router = Router();
+
+// Validation schemas
+const CreateSubscriptionSchema = z.object({
+  tierId: z.string().uuid(),
+  paymentMethod: z.enum(['crypto', 'fiat'])
+});
+
+// DTO types
+type CreateSubscriptionDTO = z.infer<typeof CreateSubscriptionSchema>;
+
+interface SubscriptionResponse {
+  id: string;
+  tierId: string;
+  status: string;
+  createdAt: string;
+}
+
+// Validation middleware
+function validate(schema: z.ZodSchema) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    try {
+      schema.parse(req.body);
+      next();
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        error: 'Validation failed',
+        details: error.errors
+      });
+    }
+  };
+}
+
+// POST /api/v1/subscriptions - Create subscription
+router.post(
+  '/subscriptions',
+  validate(CreateSubscriptionSchema),
+  async (req: Request, res: Response) => {
+    try {
+      const data: CreateSubscriptionDTO = req.body;
+      const subscription = await subscriptionService.create(data);
+
+      res.status(201).json({
+        success: true,
+        data: subscription
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: 'Failed to create subscription'
+      });
+    }
+  }
+);
+
+// GET /api/v1/subscriptions - List subscriptions with pagination
+router.get('/subscriptions', async (req: Request, res: Response) => {
+  try {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 20;
+    const status = req.query.status as string | undefined;
+
+    const result = await subscriptionService.list({ page, limit, status });
+
+    res.json({
+      success: true,
+      data: result.data,
+      pagination: result.pagination
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch subscriptions'
+    });
+  }
+});
+
+// GET /api/v1/subscriptions/:id - Get single subscription
+router.get('/subscriptions/:id', async (req: Request, res: Response) => {
+  try {
+    const subscription = await subscriptionService.getById(req.params.id);
+
+    if (!subscription) {
+      return res.status(404).json({
+        success: false,
+        error: 'Subscription not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: subscription
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch subscription'
+    });
+  }
+});
+```
+
+---
+
+## Architecture
+
+### MUST
+- Organize code into layers: routes → controllers → services → repositories
+- Keep routes thin (validation + delegation only)
+- Place business logic in services
+- Isolate data access in repositories/Prisma queries
+- Use dependency injection for testability
+
+### MUST NOT
+- Mix business logic with route handlers
+- Directly access Prisma in route handlers
+- Create circular dependencies between modules
+- Duplicate business logic across services
+
+**Structure:**
+
+```
+backend/src/
+  routes/           # Express route definitions
+  controllers/      # Request/response handling
+  services/         # Business logic
+  repositories/     # Data access layer
+  lib/             # Utilities, helpers
+  types/           # TypeScript definitions
+  middleware/      # Express middleware
+  indexer.ts       # Blockchain event indexer
+  index.ts         # API server entry point
+```
+
+**Example Architecture:**
+
+```typescript
+// ✅ Good - Layered architecture
+
+// routes/subscription.routes.ts
+import { Router } from 'express';
+import { SubscriptionController } from '../controllers/subscription.controller';
+
+const router = Router();
+const controller = new SubscriptionController();
+
+router.post('/subscriptions', controller.create);
+router.get('/subscriptions', controller.list);
+router.get('/subscriptions/:id', controller.getById);
+
+export default router;
+
+// controllers/subscription.controller.ts
+import { Request, Response } from 'express';
+import { SubscriptionService } from '../services/subscription.service';
+
+export class SubscriptionController {
+  private service = new SubscriptionService();
+
+  create = async (req: Request, res: Response) => {
+    try {
+      const subscription = await this.service.create(req.body);
+      res.status(201).json({ success: true, data: subscription });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  };
+
+  list = async (req: Request, res: Response) => {
+    try {
+      const result = await this.service.list(req.query);
+      res.json({ success: true, ...result });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  };
+
+  getById = async (req: Request, res: Response) => {
+    try {
+      const subscription = await this.service.getById(req.params.id);
+      if (!subscription) {
+        return res.status(404).json({ success: false, error: 'Not found' });
+      }
+      res.json({ success: true, data: subscription });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  };
+}
+
+// services/subscription.service.ts
+import { SubscriptionRepository } from '../repositories/subscription.repository';
+
+export class SubscriptionService {
+  private repository = new SubscriptionRepository();
+
+  async create(data: CreateSubscriptionDTO) {
+    // Business logic here
+    const subscription = await this.repository.create(data);
+    // Send notifications, update caches, etc.
+    return subscription;
+  }
+
+  async list(params: ListParams) {
+    return await this.repository.findMany(params);
+  }
+
+  async getById(id: string) {
+    return await this.repository.findById(id);
+  }
+}
+
+// repositories/subscription.repository.ts
+import { prisma } from '../lib/prisma';
+
+export class SubscriptionRepository {
+  async create(data: CreateSubscriptionDTO) {
+    return await prisma.subscription.create({ data });
+  }
+
+  async findMany(params: ListParams) {
+    return await prisma.subscription.findMany({
+      skip: (params.page - 1) * params.limit,
+      take: params.limit
+    });
+  }
+
+  async findById(id: string) {
+    return await prisma.subscription.findUnique({ where: { id } });
+  }
+}
+```
+
+---
+
+## Security
+
+### MUST
+- Validate and sanitize all user inputs
+- Use parameterized queries (Prisma does this)
+- Implement rate limiting per endpoint
+- Use HTTPS in production
+- Set security headers with helmet
+- Implement proper authentication/authorization
+- Hash passwords with bcrypt or Bun's native `Bun.password`
+- Use environment variables for secrets (never commit)
+
+### MUST NOT
+- Log sensitive data (passwords, tokens, PII)
+- Use weak cryptographic algorithms
+- Trust client-side validation alone
+- Expose detailed error messages in production
+- Store plaintext passwords or API keys
+
+### SHOULD
+- Implement JWT with short expiration times
+- Use refresh token rotation
+- Implement CSRF protection for state-changing operations
+- Sanitize error messages before sending to client
+
+---
+
+## Error Handling
+
+### MUST
+- Implement centralized error handling middleware
+- Log errors with context (user ID, request ID, timestamp)
+- Return consistent error format to clients
+- Handle async errors properly
+- Differentiate operational vs programmer errors
+
+### MUST NOT
+- Crash server on handled errors
+- Expose stack traces in production
+- Swallow errors silently
+- Return database errors directly to client
+
+**Error Handler Pattern:**
+
+```typescript
+// ✅ Good - Centralized error handling
+import { Request, Response, NextFunction } from 'express';
+import { logger } from './lib/logger';
+
+class AppError extends Error {
+  constructor(
+    public statusCode: number,
+    message: string,
+    public isOperational = true
+  ) {
+    super(message);
+    Error.captureStackTrace(this, this.constructor);
+  }
+}
+
+app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+  logger.error('Error occurred', {
+    error: err.message,
+    stack: err.stack,
+    url: req.url,
+    method: req.method,
+    userId: (req as any).userId
+  });
+
+  const statusCode = (err as AppError).statusCode || 500;
+  const message = process.env.NODE_ENV === 'production'
+    ? 'Internal Server Error'
+    : err.message;
+
+  res.status(statusCode).json({
+    success: false,
+    error: message
+  });
+});
+
+// Usage
+throw new AppError(404, 'Subscription not found');
+throw new AppError(400, 'Invalid input data');
+```
+
+---
+
+## Testing & Validation
+
+### MUST
+- Test all API endpoints before completion
+- Write unit tests for business logic
+- Implement integration tests for critical flows
+- Test error scenarios and edge cases
+
+### SHOULD
+- Use Bun's native test runner
+- Mock external dependencies (blockchain RPC, Redis)
+- Test database operations with test database
+- Implement E2E tests for critical user flows
+
+**Example Tests:**
+
+```typescript
+// ✅ Good - Unit tests with Bun
+import { describe, test, expect, mock } from 'bun:test';
+import { SubscriptionService } from './subscription.service';
+
+describe('SubscriptionService', () => {
+  test('should create subscription', async () => {
+    const mockRepository = {
+      create: mock(() => Promise.resolve({ id: '123', status: 'active' }))
+    };
+
+    const service = new SubscriptionService(mockRepository);
+    const result = await service.create({ tierId: 'tier-1' });
+
+    expect(result.id).toBe('123');
+    expect(result.status).toBe('active');
+    expect(mockRepository.create).toHaveBeenCalled();
+  });
+
+  test('should handle errors gracefully', async () => {
+    const mockRepository = {
+      create: mock(() => Promise.reject(new Error('Database error')))
+    };
+
+    const service = new SubscriptionService(mockRepository);
+
+    await expect(service.create({ tierId: 'tier-1' }))
+      .rejects
+      .toThrow('Database error');
+  });
+});
+```
+
+---
+
+## Performance
+
+### MUST
+- Implement database query optimization
+- Use Redis caching for expensive operations
+- Profile slow endpoints and optimize
+- Implement connection pooling
+- Handle concurrent requests efficiently
+
+### MUST NOT
+- Block event loop with CPU-intensive operations
+- Fetch more data than needed from database
+- Skip pagination on large datasets
+- Ignore memory leaks
+
+### SHOULD
+- Use worker threads for CPU-intensive tasks
+- Implement background jobs for async operations
+- Monitor memory usage and optimize
+- Use streaming for large file uploads/downloads
+
+---
+
+## Verification Checklist
+
+Before completing backend work:
+- [ ] All API endpoints tested and working
+- [ ] Request validation implemented
+- [ ] Error handling in place
+- [ ] Security headers configured
+- [ ] Rate limiting applied to public endpoints
+- [ ] Database queries optimized (no N+1)
+- [ ] Transactions used where needed
+- [ ] Caching implemented for expensive operations
+- [ ] Tests written and passing
+- [ ] TypeScript strict mode enabled
+- [ ] No `any` types used
+- [ ] Logging implemented
+- [ ] Environment variables documented in .env.example
