@@ -12,6 +12,12 @@ import tiersRouter from './routes/tiers';
 import subscriptionsRouter from './routes/subscriptions';
 import contentRouter from './routes/content';
 import uploadRouter from './routes/upload';
+import libraryRouter from './routes/library';
+import homeRouter from './routes/home';
+import visitsRouter from './routes/visits';
+import exploreRouter from './routes/explore';
+import dashboardRouter from './routes/dashboard';
+import notificationsRouter from './routes/notifications';
 
 // Load environment variables
 dotenv.config();
@@ -61,6 +67,12 @@ app.use('/api/creators', creatorsRouter);
 app.use('/api/tiers', tiersRouter);
 app.use('/api/subscriptions', subscriptionsRouter);
 app.use('/api/content', contentRouter);
+app.use('/api/library', libraryRouter);
+app.use('/api/home', homeRouter);
+app.use('/api/visits', visitsRouter);
+app.use('/api/explore', exploreRouter);
+app.use('/api/dashboard', dashboardRouter);
+app.use('/api/notifications', notificationsRouter);
 app.use('/api', uploadRouter); // Upload/download routes
 
 // Global error handler middleware

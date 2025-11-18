@@ -1,11 +1,12 @@
 // Subscription and tier event handlers
 import type { SuiEvent } from '@mysten/sui/client';
-import { prisma, updateCheckpoint, type EventType } from '../indexer/checkpoint';
+import { prisma } from '../indexer/checkpoint';
 import {
   retryWithBackoff,
   DependencyNotFoundError,
   isDependencyNotFoundError,
 } from '../indexer/retry-utils';
+import { createSubscriberNotification } from '../services/notifications';
 
 /**
  * Handle TierCreated event
@@ -75,9 +76,6 @@ export async function handleTierCreated(
         maxDelayMs: 10000,
       }
     );
-
-    // Update checkpoint
-    await updateCheckpoint('TierCreated' as EventType, eventSeq, txDigest);
   } catch (error) {
     console.error(`[TierCreated] Error processing event:`, error);
     throw error;
@@ -138,9 +136,6 @@ export async function handleTierPriceUpdated(
         maxDelayMs: 10000,
       }
     );
-
-    // Update checkpoint
-    await updateCheckpoint('TierPriceUpdated' as EventType, eventSeq, txDigest);
   } catch (error) {
     console.error(`[TierPriceUpdated] Error processing event:`, error);
     throw error;
@@ -206,9 +201,6 @@ export async function handleTierDeactivated(
         maxDelayMs: 10000,
       }
     );
-
-    // Update checkpoint
-    await updateCheckpoint('TierDeactivated' as EventType, eventSeq, txDigest);
   } catch (error) {
     console.error(`[TierDeactivated] Error processing event:`, error);
     throw error;
@@ -288,6 +280,33 @@ export async function handleSubscriptionPurchased(
           },
         });
 
+        // Create notification for the creator about new subscriber
+        try {
+          // Find creator by address
+          const creatorRecord = await prisma.creator.findUnique({
+            where: { address: creator },
+            select: { id: true },
+          });
+
+          if (creatorRecord) {
+            await createSubscriberNotification(
+              creatorRecord.id,
+              subscriber,
+              tier_name
+            );
+          } else {
+            console.warn(
+              `[SubscriptionPurchased] Creator not found for address ${creator}, skipping notification`
+            );
+          }
+        } catch (notifError) {
+          // Log error but don't fail subscription creation
+          console.error(
+            `[SubscriptionPurchased] Failed to create notification for subscription ${subscription_id}:`,
+            notifError
+          );
+        }
+
         console.log(
           `[SubscriptionPurchased] Successfully indexed subscription ${subscription_id}: ${subscriber} -> ${tier_name} (${amount} MIST)`
         );
@@ -299,9 +318,6 @@ export async function handleSubscriptionPurchased(
         maxDelayMs: 10000,
       }
     );
-
-    // Update checkpoint
-    await updateCheckpoint('SubscriptionPurchased' as EventType, eventSeq, txDigest);
   } catch (error) {
     console.error(`[SubscriptionPurchased] Error processing event:`, error);
     throw error;

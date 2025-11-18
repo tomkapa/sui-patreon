@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Users, Info } from "lucide-react";
+import { Users, Info, DollarSign } from "lucide-react";
 import { CreatorAnalytics } from "@/types";
 
 interface OverviewSectionProps {
@@ -32,7 +32,19 @@ export function OverviewSection({ analytics }: OverviewSectionProps) {
             Membership
           </div>
           <div className="text-3xl font-bold">{analytics.totalSubscribers}</div>
-          <div className="mt-1 text-sm text-muted-foreground">total</div>
+          <div className="mt-1 text-sm text-muted-foreground">total members</div>
+        </div>
+
+        {/* Revenue Card */}
+        <div className="rounded-lg border border-border bg-card p-6">
+          <div className="mb-2 flex items-center gap-2 text-sm font-medium text-muted-foreground">
+            <DollarSign className="h-4 w-4" />
+            Total Revenue
+          </div>
+          <div className="text-3xl font-bold">
+            {analytics.monthlyRevenue.toFixed(2)} SUI
+          </div>
+          <div className="mt-1 text-sm text-muted-foreground">all-time earnings</div>
         </div>
       </div>
     </section>

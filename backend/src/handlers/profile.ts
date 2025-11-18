@@ -1,6 +1,6 @@
 // Profile event handlers
 import type { SuiEvent } from '@mysten/sui/client';
-import { prisma, updateCheckpoint, type EventType } from '../indexer/checkpoint';
+import { prisma } from '../indexer/checkpoint';
 import {
   retryWithBackoff,
   DependencyNotFoundError,
@@ -40,9 +40,6 @@ export async function handleProfileCreated(
         bio: '',
       },
     });
-
-    // Update checkpoint
-    await updateCheckpoint('ProfileCreated' as EventType, eventSeq, txDigest);
 
     console.log(`[ProfileCreated] Successfully indexed creator ${name} (${profile_id})`);
   } catch (error) {
@@ -108,9 +105,6 @@ export async function handleProfileUpdated(
         maxDelayMs: 10000,
       }
     );
-
-    // Update checkpoint
-    await updateCheckpoint('ProfileUpdated' as EventType, eventSeq, txDigest);
   } catch (error) {
     console.error(`[ProfileUpdated] Error processing event:`, error);
     throw error;

@@ -1,15 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { Search, ExternalLink, Copy, LogOut, LayoutDashboard, ChevronDown } from "lucide-react";
+import { Search, ExternalLink, Copy, LogOut, LayoutDashboard, ChevronDown, Bell } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { LoginButton } from "@/components/auth/login-button";
 import { RoleSwitcher } from "@/components/auth/role-switcher";
+import { NotificationDropdown } from "@/components/notifications/notification-dropdown";
 import { useUser } from "@/contexts/user-context";
 import { formatAddress } from "@/lib/utils";
 import { logout } from "@/lib/zklogin";
 import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { fetchUnreadCount } from "@/services/notifications";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,6 +26,29 @@ export function Header() {
   const { user, setUser } = useUser();
   const router = useRouter();
   const isAuthenticated = !!user;
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  // Fetch unread count on mount and poll every 30 seconds
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setUnreadCount(0);
+      return;
+    }
+
+    const loadUnreadCount = async () => {
+      try {
+        const count = await fetchUnreadCount();
+        setUnreadCount(count);
+      } catch (error) {
+        console.error("Failed to fetch unread count:", error);
+      }
+    };
+
+    loadUnreadCount();
+    const interval = setInterval(loadUnreadCount, 30000); // Poll every 30s
+
+    return () => clearInterval(interval);
+  }, [isAuthenticated]);
 
   const handleCopyAddress = () => {
     if (user?.address) {
@@ -66,6 +92,18 @@ export function Header() {
 
           {isAuthenticated ? (
             <>
+              {/* Notification Bell */}
+              <NotificationDropdown onUnreadCountChange={setUnreadCount}>
+                <button className="relative rounded-lg p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+                  <Bell className="h-5 w-5" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -right-1 -top-1 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-red-500 px-1 text-xs font-semibold text-white">
+                      {unreadCount > 99 ? "99+" : unreadCount}
+                    </span>
+                  )}
+                </button>
+              </NotificationDropdown>
+
               {/* User Account Dropdown */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

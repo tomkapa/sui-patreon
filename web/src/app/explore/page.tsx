@@ -1,10 +1,85 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
-import { CreatorCard } from "@/components/creator/creator-card";
-import { TopicCard } from "@/components/creator/topic-card";
-import { mockCreators, mockTopics } from "@/lib/mock-data";
+import { CategoryCard } from "@/components/explore/category-card";
+import { ExploreCreatorCard } from "@/components/explore/creator-card";
+import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
+import {
+  fetchCategories,
+  fetchNewCreators,
+  fetchCreatorsByCategory,
+} from "@/services/explore";
+import { ExploreCategory, ExploreCreator } from "@/types";
 
 export default function ExplorePage() {
+  const [categories, setCategories] = useState<ExploreCategory[]>([]);
+  const [newCreators, setNewCreators] = useState<ExploreCreator[]>([]);
+  const [filteredCreators, setFilteredCreators] = useState<ExploreCreator[]>(
+    []
+  );
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [isLoadingCategories, setIsLoadingCategories] = useState(true);
+  const [isLoadingCreators, setIsLoadingCreators] = useState(true);
+  const [isLoadingFiltered, setIsLoadingFiltered] = useState(false);
+
+  // Fetch categories on mount
+  useEffect(() => {
+    async function loadCategories() {
+      try {
+        setIsLoadingCategories(true);
+        const data = await fetchCategories();
+        setCategories(data);
+      } catch (error) {
+        console.error("Failed to load categories:", error);
+      } finally {
+        setIsLoadingCategories(false);
+      }
+    }
+
+    loadCategories();
+  }, []);
+
+  // Fetch new creators on mount
+  useEffect(() => {
+    async function loadNewCreators() {
+      try {
+        setIsLoadingCreators(true);
+        const data = await fetchNewCreators(6);
+        setNewCreators(data);
+      } catch (error) {
+        console.error("Failed to load new creators:", error);
+      } finally {
+        setIsLoadingCreators(false);
+      }
+    }
+
+    loadNewCreators();
+  }, []);
+
+  // Handle category filter
+  const handleCategoryClick = async (categoryName: string) => {
+    setSelectedCategory(categoryName);
+    setIsLoadingFiltered(true);
+
+    try {
+      const data = await fetchCreatorsByCategory(categoryName, 9);
+      setFilteredCreators(data);
+    } catch (error) {
+      console.error("Failed to load filtered creators:", error);
+    } finally {
+      setIsLoadingFiltered(false);
+    }
+  };
+
+  // Clear category filter
+  const handleClearFilter = () => {
+    setSelectedCategory(null);
+    setFilteredCreators([]);
+  };
+
   return (
     <div className="flex min-h-screen">
       <Sidebar />
@@ -13,58 +88,86 @@ export default function ExplorePage() {
         <Header />
 
         <main className="p-6">
-          {/* Topics Section */}
-          <section className="mb-8">
-            <h2 className="mb-4 text-2xl font-semibold">Explore by topic</h2>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {mockTopics.map((topic) => (
-                <TopicCard key={topic.id} topic={topic} />
-              ))}
-            </div>
-          </section>
+          {/* Categories Section */}
+          <section className="mb-12">
+            <h2 className="mb-6 text-2xl font-semibold">Explore by topic</h2>
 
-          {/* New on Platform Section */}
-          <section className="mb-8">
-            <h2 className="mb-4 text-xl font-semibold">New on SuiPatreon</h2>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {mockCreators.slice(2, 5).map((creator) => (
-                <CreatorCard key={creator.id} creator={creator} />
-              ))}
-            </div>
-          </section>
-
-          {/* Category Sections */}
-          <section className="mb-8">
-            <h2 className="mb-4 text-xl font-semibold">Visual Arts</h2>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {mockCreators
-                .filter((c) => c.category === "Visual Arts")
-                .map((creator) => (
-                  <CreatorCard key={creator.id} creator={creator} />
+            {isLoadingCategories ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : categories.length === 0 ? (
+              <div className="rounded-lg border border-border bg-card p-8 text-center">
+                <p className="text-muted-foreground">No categories available</p>
+              </div>
+            ) : (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {categories.map((category) => (
+                  <CategoryCard
+                    key={category.id}
+                    category={category}
+                    onClick={() => handleCategoryClick(category.name)}
+                  />
                 ))}
-            </div>
+              </div>
+            )}
           </section>
 
-          <section className="mb-8">
-            <h2 className="mb-4 text-xl font-semibold">Music</h2>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {mockCreators
-                .filter((c) => c.category === "Music")
-                .map((creator) => (
-                  <CreatorCard key={creator.id} creator={creator} />
-                ))}
-            </div>
-          </section>
+          {/* Filtered Creators Section (when category is selected) */}
+          {selectedCategory && (
+            <section className="mb-12">
+              <div className="mb-6 flex items-center justify-between">
+                <h2 className="text-xl font-semibold">{selectedCategory}</h2>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleClearFilter}
+                >
+                  Clear filter
+                </Button>
+              </div>
 
-          <section className="mb-8">
-            <h2 className="mb-4 text-xl font-semibold">Technology</h2>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {mockCreators
-                .filter((c) => c.category === "Technology")
-                .map((creator) => (
-                  <CreatorCard key={creator.id} creator={creator} />
+              {isLoadingFiltered ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : filteredCreators.length === 0 ? (
+                <div className="rounded-lg border border-border bg-card p-8 text-center">
+                  <p className="text-muted-foreground">
+                    No creators found in this category
+                  </p>
+                </div>
+              ) : (
+                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                  {filteredCreators.map((creator) => (
+                    <ExploreCreatorCard key={creator.id} creator={creator} />
+                  ))}
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* New Creators Section */}
+          <section className="mb-12">
+            <h2 className="mb-6 text-xl font-semibold">New on SuiPatreon</h2>
+
+            {isLoadingCreators ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : newCreators.length === 0 ? (
+              <div className="rounded-lg border border-border bg-card p-8 text-center">
+                <p className="text-muted-foreground">
+                  No new creators to display
+                </p>
+              </div>
+            ) : (
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {newCreators.map((creator) => (
+                  <ExploreCreatorCard key={creator.id} creator={creator} />
                 ))}
-            </div>
+              </div>
+            )}
           </section>
         </main>
       </div>

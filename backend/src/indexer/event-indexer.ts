@@ -2,7 +2,7 @@
 import 'dotenv/config';
 import { SuiClient, getFullnodeUrl } from '@mysten/sui/client';
 import type { SuiEvent, EventId, SuiEventFilter } from '@mysten/sui/client';
-import { getCheckpoint, type EventType, prisma } from './checkpoint';
+import { getCheckpoint, updateCheckpoint, type EventType, prisma } from './checkpoint';
 import { handleProfileCreated, handleProfileUpdated } from '../handlers/profile';
 import {
   handleTierCreated,
@@ -33,7 +33,6 @@ type SuiEventsCursor = EventId | null | undefined;
 type EventExecutionResult = {
   cursor: SuiEventsCursor;
   hasNextPage: boolean;
-  lastProcessedSeq: string | null;
 };
 
 type EventTracker = {
@@ -96,12 +95,11 @@ const EVENTS_TO_TRACK: EventTracker[] = [
 ];
 
 /**
- * Execute a single event query and process results
+ * Execute a single event query and process results (matches example pattern)
  */
 const executeEventJob = async (
   tracker: EventTracker,
-  cursor: SuiEventsCursor,
-  lastProcessedSeq: string | null
+  cursor: SuiEventsCursor
 ): Promise<EventExecutionResult> => {
   try {
     const { data, hasNextPage, nextCursor } = await suiClient.queryEvents({
@@ -111,35 +109,28 @@ const executeEventJob = async (
       order: 'ascending',
     });
 
-    let latestProcessedSeq = lastProcessedSeq;
-
     // Process each event
     for (const event of data) {
       const eventSeq = event.id.eventSeq;
       const txDigest = event.id.txDigest;
 
-      // Skip if already processed (use in-memory tracking, not DB query)
-      if (lastProcessedSeq && BigInt(eventSeq) <= BigInt(lastProcessedSeq)) {
-        continue;
-      }
-
       console.log(`[${tracker.type}] Processing event seq ${eventSeq}, tx ${txDigest}`);
 
       try {
         await tracker.callback(event, txDigest, eventSeq);
-        latestProcessedSeq = eventSeq; // Update in-memory tracker
       } catch (error) {
         console.error(`[${tracker.type}] Error processing event ${eventSeq}:`, error);
         // Continue processing other events despite errors
       }
     }
 
-    // Return cursor for next iteration
+    // Save cursor after processing all events in batch (matches example's saveLatestCursor)
     if (nextCursor && data.length > 0) {
+      await updateCheckpoint(tracker.type, nextCursor);
+
       return {
         cursor: nextCursor,
         hasNextPage,
-        lastProcessedSeq: latestProcessedSeq,
       };
     }
   } catch (error) {
@@ -153,7 +144,6 @@ const executeEventJob = async (
       return {
         cursor: undefined,
         hasNextPage: false,
-        lastProcessedSeq: null,
       };
     }
   }
@@ -161,24 +151,22 @@ const executeEventJob = async (
   return {
     cursor,
     hasNextPage: false,
-    lastProcessedSeq,
   };
 };
 
 /**
- * Run polling job for a specific event type
+ * Run polling job for a specific event type (matches example pattern)
  */
 const runEventJob = async (
   tracker: EventTracker,
-  cursor: SuiEventsCursor,
-  lastProcessedSeq: string | null
+  cursor: SuiEventsCursor
 ): Promise<void> => {
-  const result = await executeEventJob(tracker, cursor, lastProcessedSeq);
+  const result = await executeEventJob(tracker, cursor);
 
   // Schedule next iteration
   setTimeout(
     () => {
-      runEventJob(tracker, result.cursor, result.lastProcessedSeq);
+      runEventJob(tracker, result.cursor);
     },
     result.hasNextPage ? 0 : POLL_INTERVAL
   );
@@ -207,18 +195,12 @@ export const setupListeners = async (): Promise<void> => {
     console.log(`[Indexer] Indexer is running. Press Ctrl+C to stop.`);
     console.log('='.repeat(60));
 
-    // Start polling for each event type
+    // Start polling for each event type (matches example pattern)
     for (const tracker of EVENTS_TO_TRACK) {
-      const checkpoint = await getCheckpoint(tracker.type);
-      // Convert string eventSeq back to EventId cursor format, or use undefined if no checkpoint
-      const cursor: SuiEventsCursor = checkpoint
-        ? { eventSeq: checkpoint.lastEventSeq, txDigest: checkpoint.lastTxDigest }
-        : undefined;
-
-      const lastProcessedSeq = checkpoint?.lastEventSeq ?? null;
+      const cursor = await getCheckpoint(tracker.type); // Returns EventId | undefined
 
       console.log(`[${tracker.type}] Starting event polling...`);
-      runEventJob(tracker, cursor, lastProcessedSeq);
+      runEventJob(tracker, cursor);
     }
   } catch (error) {
     console.error(`[Indexer] Failed to start indexer:`, error);

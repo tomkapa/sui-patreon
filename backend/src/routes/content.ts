@@ -25,14 +25,6 @@ router.get('/:contentId', async (req: Request, res: Response) => {
 
     const content = await prisma.content.findUnique({
       where: { contentId },
-      include: {
-        creator: true,
-        contentTiers: {
-          include: {
-            tier: true,
-          },
-        },
-      },
     });
 
     if (!content) {
@@ -41,7 +33,27 @@ router.get('/:contentId', async (req: Request, res: Response) => {
       });
     }
 
-    res.json(jsonResponse(content));
+    // Manually fetch creator (no Prisma relations)
+    const creator = await prisma.creator.findUnique({
+      where: { id: content.creatorId },
+    });
+
+    // Manually fetch contentTiers (no Prisma relations)
+    const contentTiers = await prisma.contentTier.findMany({
+      where: { contentId: content.id },
+    });
+
+    // Fetch tier details for each contentTier
+    const contentTiersWithDetails = await Promise.all(
+      contentTiers.map(async (ct) => {
+        const tier = await prisma.tier.findUnique({
+          where: { id: ct.tierId },
+        });
+        return { ...ct, tier };
+      })
+    );
+
+    res.json(jsonResponse({ ...content, creator, contentTiers: contentTiersWithDetails }));
   } catch (error) {
     console.error('Error fetching content:', error);
     res.status(500).json({
@@ -74,16 +86,9 @@ router.get('/:contentId/access', async (req: Request, res: Response) => {
       });
     }
 
-    // Fetch content with tier requirements
+    // Fetch content
     const content = await prisma.content.findUnique({
       where: { contentId },
-      include: {
-        contentTiers: {
-          select: {
-            tierId: true,
-          },
-        },
-      },
     });
 
     if (!content) {
@@ -100,8 +105,14 @@ router.get('/:contentId/access', async (req: Request, res: Response) => {
       });
     }
 
+    // Manually fetch tier requirements (no Prisma relations)
+    const contentTiers = await prisma.contentTier.findMany({
+      where: { contentId: content.id },
+      select: { tierId: true },
+    });
+
     // Check if content requires specific tiers
-    if (content.contentTiers.length === 0) {
+    if (contentTiers.length === 0) {
       // No tier requirements - accessible to all
       return res.json({
         hasAccess: true,
@@ -110,7 +121,7 @@ router.get('/:contentId/access', async (req: Request, res: Response) => {
     }
 
     // Get required tier IDs
-    const requiredTierIds = content.contentTiers.map(ct => ct.tierId);
+    const requiredTierIds = contentTiers.map(ct => ct.tierId);
 
     // Check for active subscription to any required tier
     const activeSubscription = await prisma.subscription.findFirst({
@@ -127,19 +138,18 @@ router.get('/:contentId/access', async (req: Request, res: Response) => {
           gte: new Date(),
         },
       },
-      include: {
-        tier: {
-          select: {
-            name: true,
-          },
-        },
-      },
     });
 
     if (activeSubscription) {
+      // Manually fetch tier name (no Prisma relations)
+      const tier = await prisma.tier.findUnique({
+        where: { id: activeSubscription.tierId },
+        select: { name: true },
+      });
+
       return res.json({
         hasAccess: true,
-        reason: `Active subscription to ${activeSubscription.tier.name}`,
+        reason: `Active subscription to ${tier?.name || 'tier'}`,
       });
     }
 

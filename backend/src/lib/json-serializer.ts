@@ -2,11 +2,13 @@
  * JSON Serialization Utilities
  *
  * Handles serialization of special types (BigInt, Date) to JSON-safe formats.
- * Required for Prisma models that use BigInt for price fields.
+ * Required for Prisma models that use BigInt for price fields and Date timestamps.
  */
 
 /**
- * Convert BigInt values to strings in an object
+ * Convert BigInt and Date values to JSON-safe formats in an object
+ * - BigInt -> string
+ * - Date -> ISO 8601 string
  * Recursively processes nested objects and arrays
  */
 export function serializeBigInt<T>(obj: T): T {
@@ -16,6 +18,10 @@ export function serializeBigInt<T>(obj: T): T {
 
   if (typeof obj === 'bigint') {
     return String(obj) as T;
+  }
+
+  if (obj instanceof Date) {
+    return obj.toISOString() as T;
   }
 
   if (Array.isArray(obj)) {

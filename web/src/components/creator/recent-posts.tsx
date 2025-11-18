@@ -16,15 +16,57 @@ import {
 interface RecentPostsProps {
   posts: Content[];
   tiers: SubscriptionTier[];
+  onFilterChange?: (filters: {
+    type?: string;
+    tier?: string;
+    time?: string;
+    search?: string;
+  }) => void;
+  onLoadMore?: () => void;
+  isLoadingMore?: boolean;
 }
 
-export function RecentPosts({ posts, tiers }: RecentPostsProps) {
+export function RecentPosts({
+  posts,
+  tiers,
+  onFilterChange,
+  onLoadMore,
+  isLoadingMore,
+}: RecentPostsProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState<PostFilter>({
     type: "all",
     tier: "all",
     dateRange: "all",
   });
+
+  // Notify parent component when filters change
+  const updateFilters = (newFilters: Partial<PostFilter>) => {
+    const updated = { ...filters, ...newFilters };
+    setFilters(updated);
+
+    if (onFilterChange) {
+      onFilterChange({
+        type: updated.type,
+        tier: updated.tier,
+        time: updated.dateRange === "all" ? "all" : updated.dateRange === "month" ? "30days" : "7days",
+        search: searchQuery,
+      });
+    }
+  };
+
+  // Notify parent when search changes
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    if (onFilterChange) {
+      onFilterChange({
+        type: filters.type,
+        tier: filters.tier,
+        time: filters.dateRange === "all" ? "all" : filters.dateRange === "month" ? "30days" : "7days",
+        search: value,
+      });
+    }
+  };
 
   const postTypes = [
     { value: "all", label: "All types" },
@@ -46,13 +88,18 @@ export function RecentPosts({ posts, tiers }: RecentPostsProps) {
     { value: "month", label: "This month" },
   ];
 
-  const filteredPosts = posts.filter((post) => {
-    const matchesSearch = post.title.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesType = filters.type === "all" || post.contentType === filters.type;
-    const matchesTier =
-      filters.tier === "all" || post.tierIds.includes(filters.tier);
-    return matchesSearch && matchesType && matchesTier;
-  });
+  // If parent is handling filtering via API, don't filter locally
+  const filteredPosts = onFilterChange
+    ? posts
+    : posts.filter((post) => {
+        const matchesSearch = post.title
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase());
+        const matchesType = filters.type === "all" || post.contentType === filters.type;
+        const matchesTier =
+          filters.tier === "all" || post.tierIds.includes(filters.tier);
+        return matchesSearch && matchesType && matchesTier;
+      });
 
   return (
     <section>
@@ -72,7 +119,7 @@ export function RecentPosts({ posts, tiers }: RecentPostsProps) {
             {postTypes.map((type) => (
               <DropdownMenuItem
                 key={type.value}
-                onClick={() => setFilters({ ...filters, type: type.value as any })}
+                onClick={() => updateFilters({ type: type.value as any })}
               >
                 {type.label}
               </DropdownMenuItem>
@@ -92,7 +139,7 @@ export function RecentPosts({ posts, tiers }: RecentPostsProps) {
             {tierOptions.map((tier) => (
               <DropdownMenuItem
                 key={tier.value}
-                onClick={() => setFilters({ ...filters, tier: tier.value })}
+                onClick={() => updateFilters({ tier: tier.value })}
               >
                 {tier.label}
               </DropdownMenuItem>
@@ -112,7 +159,7 @@ export function RecentPosts({ posts, tiers }: RecentPostsProps) {
             {dateRanges.map((range) => (
               <DropdownMenuItem
                 key={range.value}
-                onClick={() => setFilters({ ...filters, dateRange: range.value as any })}
+                onClick={() => updateFilters({ dateRange: range.value as any })}
               >
                 {range.label}
               </DropdownMenuItem>
@@ -132,7 +179,7 @@ export function RecentPosts({ posts, tiers }: RecentPostsProps) {
             type="search"
             placeholder="Search posts"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
             className="pl-10"
           />
         </div>
@@ -140,43 +187,59 @@ export function RecentPosts({ posts, tiers }: RecentPostsProps) {
 
       {/* Posts Grid */}
       {filteredPosts.length > 0 ? (
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {filteredPosts.map((post) => (
-            <div
-              key={post.id}
-              className="group cursor-pointer overflow-hidden rounded-lg border border-border bg-card transition-all hover:border-primary/50 hover:shadow-lg"
-            >
-              {/* Post Image */}
-              {post.thumbnailUrl && (
-                <div className="relative aspect-video w-full overflow-hidden bg-muted">
-                  <Image
-                    src={post.thumbnailUrl}
-                    alt={post.title}
-                    fill
-                    className="object-cover transition-transform group-hover:scale-105"
-                  />
-                </div>
-              )}
+        <>
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {filteredPosts.map((post) => (
+              <div
+                key={post.id}
+                className="group cursor-pointer overflow-hidden rounded-lg border border-border bg-card transition-all hover:border-primary/50 hover:shadow-lg"
+              >
+                {/* Post Image */}
+                {post.thumbnailUrl && (
+                  <div className="relative aspect-video w-full overflow-hidden bg-muted">
+                    <Image
+                      src={post.thumbnailUrl}
+                      alt={post.title}
+                      fill
+                      className="object-cover transition-transform group-hover:scale-105"
+                    />
+                  </div>
+                )}
 
-              {/* Post Info */}
-              <div className="p-4">
-                <h3 className="mb-2 line-clamp-2 font-semibold">{post.title}</h3>
-                <p className="mb-3 line-clamp-2 text-sm text-muted-foreground">
-                  {post.description}
-                </p>
+                {/* Post Info */}
+                <div className="p-4">
+                  <h3 className="mb-2 line-clamp-2 font-semibold">{post.title}</h3>
+                  <p className="mb-3 line-clamp-2 text-sm text-muted-foreground">
+                    {post.description}
+                  </p>
 
-                {/* Post Stats */}
-                <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                  <span>{post.viewCount} views</span>
-                  <span>{post.likeCount} likes</span>
-                  <span className="ml-auto">
-                    {new Date(post.createdAt).toLocaleDateString()}
-                  </span>
+                  {/* Post Stats */}
+                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                    <span>{post.viewCount} views</span>
+                    <span>{post.likeCount} likes</span>
+                    <span className="ml-auto">
+                      {new Date(post.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
                 </div>
               </div>
+            ))}
+          </div>
+
+          {/* Load More Button */}
+          {onLoadMore && (
+            <div className="mt-8 flex justify-center">
+              <Button
+                onClick={onLoadMore}
+                disabled={isLoadingMore}
+                variant="outline"
+                size="lg"
+              >
+                {isLoadingMore ? "Loading..." : "Load More"}
+              </Button>
             </div>
-          ))}
-        </div>
+          )}
+        </>
       ) : (
         <div className="rounded-lg border border-border bg-card p-12 text-center">
           <p className="text-muted-foreground">

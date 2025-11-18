@@ -1,5 +1,6 @@
-// Checkpoint management utilities for resumable event indexing
+// Checkpoint management utilities for resumable event indexing (matches example pattern)
 import { PrismaClient } from '@prisma/client';
+import type { EventId } from '@mysten/sui/client';
 
 const prisma = new PrismaClient();
 
@@ -13,47 +14,43 @@ export type EventType =
   | 'ContentCreated';
 
 /**
- * Retrieve the last checkpoint for a given event type
+ * Retrieve the last cursor for a given event type (matches example's getLatestCursor)
  */
-export async function getCheckpoint(eventType: EventType): Promise<{
-  lastEventSeq: string;
-  lastTxDigest: string;
-} | null> {
-  const checkpoint = await prisma.indexerCheckpoint.findUnique({
-    where: { eventType },
+export async function getCheckpoint(eventType: EventType): Promise<EventId | undefined> {
+  const cursor = await prisma.cursor.findUnique({
+    where: { id: eventType },
   });
 
-  if (checkpoint) {
+  if (cursor) {
     console.log(
-      `[Checkpoint] Resuming ${eventType} from sequence ${checkpoint.lastEventSeq}, tx ${checkpoint.lastTxDigest}`
+      `[Checkpoint] Resuming ${eventType} from sequence ${cursor.eventSeq}, tx ${cursor.txDigest}`
     );
     return {
-      lastEventSeq: checkpoint.lastEventSeq,
-      lastTxDigest: checkpoint.lastTxDigest,
+      eventSeq: cursor.eventSeq,
+      txDigest: cursor.txDigest,
     };
   }
 
-  return null;
+  return undefined;
 }
 
 /**
- * Update checkpoint after successfully processing an event
+ * Save cursor after successfully processing events (matches example's saveLatestCursor)
  */
 export async function updateCheckpoint(
   eventType: EventType,
-  eventSeq: string,
-  txDigest: string
+  cursor: EventId
 ): Promise<void> {
-  await prisma.indexerCheckpoint.upsert({
-    where: { eventType },
+  await prisma.cursor.upsert({
+    where: { id: eventType },
     update: {
-      lastEventSeq: eventSeq,
-      lastTxDigest: txDigest,
+      eventSeq: cursor.eventSeq,
+      txDigest: cursor.txDigest,
     },
     create: {
-      eventType,
-      lastEventSeq: eventSeq,
-      lastTxDigest: txDigest,
+      id: eventType,
+      eventSeq: cursor.eventSeq,
+      txDigest: cursor.txDigest,
     },
   });
 }

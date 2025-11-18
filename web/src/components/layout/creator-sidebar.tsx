@@ -48,7 +48,7 @@ export function CreatorSidebar() {
         {/* Create Button */}
         <div className="p-4">
           <Button className="w-full" asChild>
-            <Link href="/creator/content/new">
+            <Link href="/create">
               <PlusCircle className="mr-2 h-4 w-4" />
               Create
             </Link>

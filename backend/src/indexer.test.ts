@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
 describe('Sui Event Indexer', () => {
   beforeAll(async () => {
     // Clean up test data before running tests
-    await prisma.indexerCheckpoint.deleteMany({});
+    await prisma.cursor.deleteMany({});
     await prisma.contentTier.deleteMany({});
     await prisma.content.deleteMany({});
     await prisma.subscription.deleteMany({});
@@ -19,57 +19,57 @@ describe('Sui Event Indexer', () => {
     await prisma.$disconnect();
   });
 
-  describe('IndexerCheckpoint Model', () => {
-    it('should create a checkpoint', async () => {
-      const checkpoint = await prisma.indexerCheckpoint.create({
+  describe('Cursor Model', () => {
+    it('should create a cursor', async () => {
+      const cursor = await prisma.cursor.create({
         data: {
-          eventType: 'ProfileCreated',
-          lastEventSeq: '12345',
-          lastTxDigest: '0xabc123',
+          id: 'ProfileCreated',
+          eventSeq: '12345',
+          txDigest: '0xabc123',
         },
       });
 
-      expect(checkpoint).toBeDefined();
-      expect(checkpoint.eventType).toBe('ProfileCreated');
-      expect(checkpoint.lastEventSeq).toBe('12345');
-      expect(checkpoint.lastTxDigest).toBe('0xabc123');
+      expect(cursor).toBeDefined();
+      expect(cursor.id).toBe('ProfileCreated');
+      expect(cursor.eventSeq).toBe('12345');
+      expect(cursor.txDigest).toBe('0xabc123');
     });
 
-    it('should retrieve a checkpoint by event type', async () => {
-      const checkpoint = await prisma.indexerCheckpoint.findUnique({
-        where: { eventType: 'ProfileCreated' },
+    it('should retrieve a cursor by event type', async () => {
+      const cursor = await prisma.cursor.findUnique({
+        where: { id: 'ProfileCreated' },
       });
 
-      expect(checkpoint).toBeDefined();
-      expect(checkpoint?.eventType).toBe('ProfileCreated');
-      expect(checkpoint?.lastEventSeq).toBe('12345');
+      expect(cursor).toBeDefined();
+      expect(cursor?.id).toBe('ProfileCreated');
+      expect(cursor?.eventSeq).toBe('12345');
     });
 
-    it('should update a checkpoint (upsert)', async () => {
-      const checkpoint = await prisma.indexerCheckpoint.upsert({
-        where: { eventType: 'ProfileCreated' },
+    it('should update a cursor (upsert)', async () => {
+      const cursor = await prisma.cursor.upsert({
+        where: { id: 'ProfileCreated' },
         update: {
-          lastEventSeq: '67890',
-          lastTxDigest: '0xdef456',
+          eventSeq: '67890',
+          txDigest: '0xdef456',
         },
         create: {
-          eventType: 'ProfileCreated',
-          lastEventSeq: '67890',
-          lastTxDigest: '0xdef456',
+          id: 'ProfileCreated',
+          eventSeq: '67890',
+          txDigest: '0xdef456',
         },
       });
 
-      expect(checkpoint.lastEventSeq).toBe('67890');
-      expect(checkpoint.lastTxDigest).toBe('0xdef456');
+      expect(cursor.eventSeq).toBe('67890');
+      expect(cursor.txDigest).toBe('0xdef456');
     });
 
-    it('should enforce unique constraint on eventType', async () => {
+    it('should enforce unique constraint on id', async () => {
       try {
-        await prisma.indexerCheckpoint.create({
+        await prisma.cursor.create({
           data: {
-            eventType: 'ProfileCreated',
-            lastEventSeq: '11111',
-            lastTxDigest: '0xaaa111',
+            id: 'ProfileCreated',
+            eventSeq: '11111',
+            txDigest: '0xaaa111',
           },
         });
         // Should not reach here
@@ -161,13 +161,13 @@ describe('Sui Event Indexer', () => {
     });
   });
 
-  describe('Checkpoint-based Deduplication', () => {
-    it('should skip events with sequence number <= checkpoint', async () => {
-      const checkpoint = await prisma.indexerCheckpoint.create({
+  describe('Cursor-based Deduplication', () => {
+    it('should skip events with sequence number <= cursor', async () => {
+      const cursor = await prisma.cursor.create({
         data: {
-          eventType: 'TierCreated',
-          lastEventSeq: '100',
-          lastTxDigest: '0xtx100',
+          id: 'TierCreated',
+          eventSeq: '100',
+          txDigest: '0xtx100',
         },
       });
 
@@ -176,9 +176,9 @@ describe('Sui Event Indexer', () => {
       const eventSeq2 = '100'; // Should be skipped
       const eventSeq3 = '101'; // Should be processed
 
-      expect(BigInt(eventSeq1) <= BigInt(checkpoint.lastEventSeq)).toBe(true);
-      expect(BigInt(eventSeq2) <= BigInt(checkpoint.lastEventSeq)).toBe(true);
-      expect(BigInt(eventSeq3) <= BigInt(checkpoint.lastEventSeq)).toBe(false);
+      expect(BigInt(eventSeq1) <= BigInt(cursor.eventSeq)).toBe(true);
+      expect(BigInt(eventSeq2) <= BigInt(cursor.eventSeq)).toBe(true);
+      expect(BigInt(eventSeq3) <= BigInt(cursor.eventSeq)).toBe(false);
     });
   });
 

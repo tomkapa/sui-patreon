@@ -2,11 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Compass, MessageSquare, Bell, Settings, User } from "lucide-react";
+import { useEffect, useState, useCallback } from "react";
+import { Home, Compass, MessageSquare, Bell, Settings, User, Loader2 } from "lucide-react";
 import Image from "next/image";
 import { cn, formatAddress } from "@/lib/utils";
-import { mockCreators } from "@/lib/mock-data";
 import { useUser } from "@/contexts/user-context";
+import { fetchRecentVisits } from "@/services/visits";
+import { getUserAddress } from "@/lib/user-session";
+import { CreatorProfile } from "@/types";
+import { useVisitTracking } from "@/hooks/useVisitTracking";
 
 const navItems = [
   { href: "/", label: "Home", icon: Home },
@@ -16,12 +20,43 @@ const navItems = [
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
-// Recently visited creators (using first 3 from mock data)
-const recentlyVisited = mockCreators.slice(0, 3);
-
 export function Sidebar() {
   const pathname = usePathname();
   const { user } = useUser();
+  const { trackCreatorVisit } = useVisitTracking();
+
+  // State for recently visited creators
+  const [recentlyVisited, setRecentlyVisited] = useState<CreatorProfile[]>([]);
+  const [isLoadingVisits, setIsLoadingVisits] = useState(true);
+
+  // Fetch recent visits on mount
+  useEffect(() => {
+    const loadRecentVisits = async () => {
+      try {
+        setIsLoadingVisits(true);
+        const userAddress = getUserAddress();
+
+        if (userAddress) {
+          const visits = await fetchRecentVisits(userAddress, 3);
+          setRecentlyVisited(visits);
+        }
+      } catch (error) {
+        console.error("Failed to load recent visits:", error);
+      } finally {
+        setIsLoadingVisits(false);
+      }
+    };
+
+    loadRecentVisits();
+  }, []);
+
+  // Handle creator card click - track visit
+  const handleCreatorClick = useCallback(
+    (creatorAddress: string) => {
+      trackCreatorVisit(creatorAddress);
+    },
+    [trackCreatorVisit]
+  );
 
   return (
     <aside className="fixed left-0 top-0 z-40 h-screen w-64 border-r border-border bg-card">
@@ -61,32 +96,39 @@ export function Sidebar() {
         </nav>
 
         {/* Recently Visited Section */}
-        <div className="px-3 pb-4">
-          <h3 className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Recently Visited
-          </h3>
-          <div className="space-y-0.5">
-            {recentlyVisited.map((creator) => (
-              <Link
-                key={creator.id}
-                href={`/creator/${creator.address}`}
-                className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-accent"
-              >
-                <div className="relative h-8 w-8 flex-shrink-0 overflow-hidden rounded-full">
-                  <Image
-                    src={creator.avatarUrl}
-                    alt={creator.displayName}
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-                <span className="truncate text-sm font-medium text-foreground">
-                  {creator.displayName}
-                </span>
-              </Link>
-            ))}
+        {isLoadingVisits ? (
+          <div className="flex items-center justify-center px-3 pb-4">
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
-        </div>
+        ) : recentlyVisited.length > 0 ? (
+          <div className="px-3 pb-4">
+            <h3 className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Recently Visited
+            </h3>
+            <div className="space-y-0.5">
+              {recentlyVisited.map((creator) => (
+                <Link
+                  key={creator.id}
+                  href={`/creator/${creator.address}`}
+                  onClick={() => handleCreatorClick(creator.address)}
+                  className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-accent"
+                >
+                  <div className="relative h-8 w-8 flex-shrink-0 overflow-hidden rounded-full">
+                    <Image
+                      src={creator.avatarUrl}
+                      alt={creator.displayName}
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                  <span className="truncate text-sm font-medium text-foreground">
+                    {creator.displayName}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        ) : null}
 
         <div className="flex-1" />
 

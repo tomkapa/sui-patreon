@@ -1,12 +1,13 @@
 // Content event handlers
 import type { SuiEvent } from '@mysten/sui/client';
 import type { Prisma } from '@prisma/client';
-import { prisma, updateCheckpoint, type EventType } from '../indexer/checkpoint';
+import { prisma } from '../indexer/checkpoint';
 import {
   retryWithBackoff,
   DependencyNotFoundError,
   isDependencyNotFoundError,
 } from '../indexer/retry-utils';
+import { createContentNotifications } from '../services/notifications';
 
 /**
  * Handle ContentCreated event
@@ -63,6 +64,8 @@ export async function handleContentCreated(
         }
 
         // Use transaction to ensure atomicity
+        let contentDbId: string;
+
         await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
           // Create or update Content
           const content = await tx.content.upsert({
@@ -74,6 +77,8 @@ export async function handleContentCreated(
               walrusBlobId: walrus_blob_id,
               previewBlobId: preview_blob_id || null,
               isPublic: is_public,
+              isDraft: false, // Content from chain is published
+              publishedAt: new Date(Number(created_at)),
             },
             create: {
               contentId: content_id,
@@ -84,9 +89,13 @@ export async function handleContentCreated(
               walrusBlobId: walrus_blob_id,
               previewBlobId: preview_blob_id || null,
               isPublic: is_public,
+              isDraft: false, // Content from chain is published
+              publishedAt: new Date(Number(created_at)),
               createdAt: new Date(Number(created_at)),
             },
           });
+
+          contentDbId = content.id;
 
           // Delete existing ContentTier entries (to handle updates)
           await tx.contentTier.deleteMany({
@@ -122,6 +131,18 @@ export async function handleContentCreated(
               );
             }
           }
+
+          // Create notifications for subscribers after content is saved
+          // Run in separate transaction to avoid blocking content creation
+          try {
+            await createContentNotifications(content.id, creatorRecord.id, tx);
+          } catch (notifError) {
+            // Log error but don't fail content creation
+            console.error(
+              `[ContentCreated] Failed to create notifications for content ${title}:`,
+              notifError
+            );
+          }
         });
 
         console.log(`[ContentCreated] Successfully indexed content ${title} (${content_id})`);
@@ -133,9 +154,6 @@ export async function handleContentCreated(
         maxDelayMs: 10000,
       }
     );
-
-    // Update checkpoint
-    await updateCheckpoint('ContentCreated' as EventType, eventSeq, txDigest);
   } catch (error) {
     console.error(`[ContentCreated] Error processing event:`, error);
     throw error;

@@ -100,3 +100,96 @@ export interface PostFilter {
   tier: "all" | string; // "all" or tier ID
   dateRange: "all" | "today" | "week" | "month";
 }
+
+export type MediaType = "video" | "audio" | "image" | "link" | "attachment";
+
+export type AudienceAccess = "free" | "paid";
+
+export interface CreatePostFormData {
+  title: string;
+  content: string;
+  mediaType?: MediaType;
+  mediaUrl?: string;
+  audience: AudienceAccess;
+  tierIds: string[];
+  enableComments: boolean;
+  tags: string[];
+  isDrop: boolean;
+  scheduledDate?: Date;
+  emailSubscribers: boolean;
+}
+
+export interface LibraryPost {
+  id: string;
+  title: string;
+  publishDate: Date;
+  tierAccess: "Public" | "Paid" | string;
+  price?: number;
+  postType: "text" | "video" | "audio" | "image";
+  thumbnailUrl?: string;
+  isDraft: boolean;
+  viewCount?: number;
+  likeCount?: number;
+}
+
+export type LibraryTab = "posts" | "collections" | "drafts";
+
+export interface SubscriberInfo {
+  id: string;
+  subscriptionId: string;
+  subscriber: string; // Sui wallet address
+  tierId: string;
+  tierName: string;
+  startsAt: Date;
+  expiresAt: Date;
+  isActive: boolean;
+  createdAt: Date;
+}
+
+export interface ExploreCategory {
+  id: string;
+  name: string;
+  description: string;
+  iconName: string;
+  creatorCount: number;
+  slug: string;
+}
+
+export interface ExploreCreator {
+  id: string;
+  address: string;
+  suinsName: string | null;
+  displayName: string;
+  bio: string;
+  avatarUrl: string | null;
+  coverImageUrl: string | null;
+  category: string;
+  followerCount: number;
+  isVerified: boolean;
+  createdAt: Date;
+}
+
+export type NotificationType = "NEW_CONTENT" | "NEW_SUBSCRIBER";
+
+export interface Notification {
+  id: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  actorName: string | null;
+  contentId: string | null;
+  isRead: boolean;
+  createdAt: Date;
+}
+
+export interface NotificationsResponse {
+  notifications: Notification[];
+  unreadCount: number;
+  total: number;
+}
+
+export interface CreatorProfileData {
+  creator: CreatorProfile;
+  tiers: SubscriptionTier[];
+  recentPosts: Content[];
+}
