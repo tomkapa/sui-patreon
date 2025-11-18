@@ -9,45 +9,92 @@ import {
 } from './config';
 import { fromHex, SUI_CLOCK_OBJECT_ID, toHex } from '@mysten/sui/utils';
 import { EncryptedObject } from '@mysten/seal';
+import { WalrusFile } from '@mysten/walrus';
 
-export async function createPost(content: string, nonce: number) {
-  // 1. encrypt the content with seal
-  const { encryptedObject: encryptedBytes } = await sealClient.encrypt({
-    threshold: 2,
-    packageId: CONFIG.PACKAGE_ID,
-    id: computeID(nonce),
-    data: new TextEncoder().encode(content),
+export async function createPost(nonce: number) {
+  const contents = ['content1', 'content2'];
+  const needEncrypt = [true, false];
+  let files: WalrusFile[] = [];
+
+  for (let i = 0; i < contents.length; i++) {
+    let content = new TextEncoder().encode(contents[i]);
+    if (needEncrypt[i]) {
+      const { encryptedObject: encryptedBytes } = await sealClient.encrypt({
+        threshold: 2,
+        packageId: CONFIG.PACKAGE_ID,
+        id: computeID(nonce),
+        data: content,
+      });
+      content = encryptedBytes;
+    }
+
+    files.push(
+      WalrusFile.from({
+        contents: content,
+        identifier: `content${i}.txt`,
+      })
+    );
+  }
+
+  await createContent(files);
+}
+
+async function createContent(files: WalrusFile[]) {
+  // Step 1: Create and encode the flow (can be done immediately when file is selected)
+  const flow = walrusClient.writeFilesFlow({ files });
+  await flow.encode();
+
+  // Step 2: Register the blob (triggered by user clicking a register button after the encode step)
+  const registerTx = flow.register({
+    epochs: 1,
+    owner: keypair.toSuiAddress(),
+    deletable: true,
   });
 
-  // 2. submit encrypted post to walrus
-  const { blobId, blobObject } = await walrusClient.writeBlob({
-    blob: encryptedBytes,
-    deletable: true,
-    epochs: 1,
+  const { digest } = await suiClient.signAndExecuteTransaction({
+    transaction: registerTx,
+    signer: keypair,
+  });
+  await flow.upload({ digest });
+
+  // Step 3: Certify the blob (triggered by user clicking a certify button after the blob is uploaded)
+  const certifyTx = flow.certify();
+  await suiClient.signAndExecuteTransaction({
+    transaction: certifyTx,
     signer: keypair,
   });
 
-  console.log(blobId, blobObject);
+  // Step 4: Get the new files
+  const newFiles = await flow.listFiles();
+  console.log('Uploaded files', newFiles);
 }
 
-export async function viewPost(
-  blobId: string,
-  content: string,
-  subscription: string
-) {
-  // 1. get the post from walrus
-  const blobBytes = await walrusClient.readBlob({ blobId });
-  const blob = new Blob([new Uint8Array(blobBytes)]);
-  const encryptedBytes = new Uint8Array(await blob.arrayBuffer());
-  const encryptedObject = EncryptedObject.parse(encryptedBytes);
+export async function viewPost(contentId: string, subscription: string) {
+  // 1. get the content from Sui
+  const content = await suiClient.getObject({
+    id: contentId,
+    options: { showContent: true },
+  });
+  if (!content) {
+    throw new Error('Content not found in Sui');
+  }
 
-  // 2. decrypt the content with seal
+  const patchId = (content.data?.content as any).fields.sealed_patch_id;
+  if (!patchId) {
+    throw new Error('Patch ID not found in Walrus');
+  }
+
+  // 2. get the post from walrus
+  const [patch] = await walrusClient.getFiles({ ids: [patchId] });
+  const encryptedBytes = await patch.bytes();
+
+  // 3. decrypt the content with seal
   const tx = new Transaction();
   tx.moveCall({
     target: `${CONFIG.PUBLISHED_AT}::content::seal_approve`,
     arguments: [
-      tx.pure.vector('u8', fromHex(encryptedObject.id)),
-      tx.object(content),
+      tx.pure.vector('u8', fromHex(EncryptedObject.parse(encryptedBytes).id)),
+      tx.object(contentId),
       tx.object(subscription),
       tx.object(SUI_CLOCK_OBJECT_ID),
     ],

@@ -46,12 +46,14 @@ export async function createTier(
   console.log(result);
 }
 
-export async function purchase(tier: string, payment: string) {
+export async function purchase(creator: string, tier: string, payment: string) {
   const tx = new Transaction();
   tx.moveCall({
     target: `${CONFIG.PUBLISHED_AT}::subscription::purchase_subscription`,
     arguments: [
-      tx.object(tier),
+      tx.object(CONFIG.TIER_REGISTRY),
+      tx.object(creator),
+      tx.pure.id(tier),
       tx.object(payment),
       tx.object(SUI_CLOCK_OBJECT_ID),
     ],
@@ -70,9 +72,7 @@ export async function createContent(
   title: string,
   description: string,
   content_type: string,
-  walrus_blob_id: string,
-  required_tier_ids: string,
-  is_public: string
+  sealed_patch_id: string
 ) {
   const tx = new Transaction();
   tx.moveCall({
@@ -83,10 +83,9 @@ export async function createContent(
       tx.pure.string(title),
       tx.pure.string(description),
       tx.pure.string(content_type),
-      tx.pure.string(walrus_blob_id),
-      tx.pure.string(walrus_blob_id),
-      tx.pure.vector('id', [required_tier_ids]),
-      tx.pure.bool(is_public === 'true'),
+      tx.pure.string(sealed_patch_id),
+      tx.pure.string(sealed_patch_id),
+      tx.pure.vector('id', []),
       tx.object(SUI_CLOCK_OBJECT_ID),
     ],
   });

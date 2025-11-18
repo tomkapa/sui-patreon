@@ -20,10 +20,9 @@ public struct ContentCreated has copy, drop {
     title: String,
     description: String,
     content_type: String,
-    walrus_blob_id: String,
-    preview_blob_id: String,
+    preview_patch_id: String,
+    sealed_patch_id: String,
     tier_ids: vector<ID>,
-    is_public: bool,
     created_at: u64,
 }
 
@@ -43,10 +42,9 @@ public struct Content has key {
     title: String,
     description: String,
     content_type: String, // MIME type (e.g., "video/mp4", "image/jpeg")
-    walrus_blob_id: String, // Main content blob ID in Walrus
-    preview_blob_id: String, // Preview/sample blob ID (can be empty)
-    required_tier_ids: vector<ID>, // Tier IDs required for access (empty = public)
-    is_public: bool, // If true, no tier required
+    preview_patch_id: String, // Preview patch ID in Walrus
+    sealed_patch_id: String, // Sealed patch ID in Walrus
+    tier_ids: vector<ID>, // Tier IDs required for access (empty = public)
     created_at: u64,
 }
 
@@ -67,10 +65,9 @@ public fun create_content(
     title: String,
     description: String,
     content_type: String,
-    walrus_blob_id: String,
-    preview_blob_id: String,
-    required_tier_ids: vector<ID>,
-    is_public: bool,
+    preview_patch_id: String,
+    sealed_patch_id: String,
+    tier_ids: vector<ID>,
     clock: &Clock,
     ctx: &mut TxContext,
 ) {
@@ -82,10 +79,9 @@ public fun create_content(
         title,
         description,
         content_type,
-        walrus_blob_id,
-        preview_blob_id,
-        required_tier_ids,
-        is_public,
+        preview_patch_id,
+        sealed_patch_id,
+        tier_ids,
         created_at: clock.timestamp_ms(),
     };
 
@@ -103,10 +99,9 @@ public fun create_content(
         title: content.title,
         description: content.description,
         content_type: content.content_type,
-        walrus_blob_id: content.walrus_blob_id,
-        preview_blob_id: content.preview_blob_id,
-        tier_ids: content.required_tier_ids,
-        is_public: content.is_public,
+        preview_patch_id: content.preview_patch_id,
+        sealed_patch_id: content.sealed_patch_id,
+        tier_ids: content.tier_ids,
         created_at: content.created_at,
     });
 
@@ -148,11 +143,6 @@ fun check_policy(
         return false
     };
 
-    // Public content is accessible to everyone
-    if (content.is_public) {
-        return true
-    };
-
     // Check subscription is for the correct creator
     if (subscription.creator() != content.creator) {
         return false
@@ -164,6 +154,8 @@ fun check_policy(
     };
 
     // Check if subscription tier matches any required tier
-    let sub_tier_id = subscription.tier_id();
-    vector::contains(&content.required_tier_ids, &sub_tier_id)
+    if (content.tier_ids.is_empty()) {
+        return true
+    };
+    content.tier_ids.contains(&subscription.tier_id())
 }
