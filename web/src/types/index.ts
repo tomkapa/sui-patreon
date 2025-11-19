@@ -33,7 +33,7 @@ export interface Content {
   title: string;
   description: string;
   thumbnailUrl?: string;
-  contentType: "video" | "audio" | "image" | "text";
+  contentType: 'video' | 'audio' | 'image' | 'text';
   blobId?: string; // Walrus blob ID
   tierIds: string[]; // Required tiers for access
   isPublic: boolean;
@@ -74,7 +74,7 @@ export interface User {
 
 export interface ActivityEvent {
   id: string;
-  type: "subscription" | "revenue" | "comment" | "like" | "impression";
+  type: 'subscription' | 'revenue' | 'comment' | 'like' | 'impression';
   creatorAddress: string;
   timestamp: Date;
   metadata: {
@@ -96,14 +96,14 @@ export interface CreatorAnalytics {
 }
 
 export interface PostFilter {
-  type: "all" | "video" | "audio" | "image" | "text";
-  tier: "all" | string; // "all" or tier ID
-  dateRange: "all" | "today" | "week" | "month";
+  type: 'all' | 'video' | 'audio' | 'image' | 'text';
+  tier: 'all' | string; // "all" or tier ID
+  dateRange: 'all' | 'today' | 'week' | 'month';
 }
 
-export type MediaType = "video" | "audio" | "image" | "link" | "attachment";
+export type MediaType = 'video' | 'audio' | 'image' | 'link' | 'attachment';
 
-export type AudienceAccess = "free" | "paid";
+export type AudienceAccess = 'free' | 'paid';
 
 export interface CreatePostFormData {
   title: string;
@@ -117,22 +117,24 @@ export interface CreatePostFormData {
   isDrop: boolean;
   scheduledDate?: Date;
   emailSubscribers: boolean;
+  previewFile: File | null;
+  exclusiveFile: File | null;
 }
 
 export interface LibraryPost {
   id: string;
   title: string;
   publishDate: Date;
-  tierAccess: "Public" | "Paid" | string;
+  tierAccess: 'Public' | 'Paid' | string;
   price?: number;
-  postType: "text" | "video" | "audio" | "image";
+  postType: 'text' | 'video' | 'audio' | 'image';
   thumbnailUrl?: string;
   isDraft: boolean;
   viewCount?: number;
   likeCount?: number;
 }
 
-export type LibraryTab = "posts" | "collections" | "drafts";
+export type LibraryTab = 'posts' | 'collections' | 'drafts';
 
 export interface SubscriberInfo {
   id: string;
@@ -169,7 +171,7 @@ export interface ExploreCreator {
   createdAt: Date;
 }
 
-export type NotificationType = "NEW_CONTENT" | "NEW_SUBSCRIBER";
+export type NotificationType = 'NEW_CONTENT' | 'NEW_SUBSCRIBER';
 
 export interface Notification {
   id: string;

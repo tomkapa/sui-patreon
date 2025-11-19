@@ -3,13 +3,15 @@ import { Transaction } from '@mysten/sui/transactions';
 import { SUI_CLOCK_OBJECT_ID } from '@mysten/sui/utils';
 import { CONFIG, suiClient } from './config';
 
-const createProfile = (info: typeof bcsCreatorInfo.$inferInput) => {
+const createProfile = (name: string, bio: string, avatarUrl: string) => {
   const tx = new Transaction();
   tx.moveCall({
     target: `${CONFIG.PUBLISHED_AT}::profile::create_profile`,
     arguments: [
       tx.object(CONFIG.PROFILE_REGISTRY),
-      tx.pure.vector('u8', bcsCreatorInfo.serialize(info).toBytes()),
+      tx.pure.string(name),
+      tx.pure.string(bio),
+      tx.pure.string(avatarUrl),
       tx.object(SUI_CLOCK_OBJECT_ID),
     ],
   });
@@ -55,7 +57,9 @@ const createContent = (
   title: string,
   description: string,
   content_type: string,
-  sealed_patch_id: string
+  preview_patch_id: string,
+  sealed_patch_id: string,
+  tier_ids: string[],
 ) => {
   const tx = new Transaction();
   tx.moveCall({
@@ -66,22 +70,25 @@ const createContent = (
       tx.pure.string(title),
       tx.pure.string(description),
       tx.pure.string(content_type),
+      tx.pure.string(preview_patch_id),
       tx.pure.string(sealed_patch_id),
-      tx.pure.string(sealed_patch_id),
-      tx.pure.vector('id', []),
+      tx.pure.vector('id', tier_ids),
       tx.object(SUI_CLOCK_OBJECT_ID),
     ],
   });
   return tx;
 };
 
-const updateProfile = (info: typeof bcsCreatorInfo.$inferInput) => {
+const updateProfile = (name: string, bio: string, avatarUrl: string) => {
   const tx = new Transaction();
   tx.moveCall({
     target: `${CONFIG.PUBLISHED_AT}::profile::update_profile`,
     arguments: [
       tx.object(CONFIG.PROFILE_REGISTRY),
-      tx.pure.vector('u8', bcsCreatorInfo.serialize(info).toBytes()),
+      tx.pure.string(name),
+      tx.pure.string(bio),
+      tx.pure.string(avatarUrl),
+      tx.object(SUI_CLOCK_OBJECT_ID),
     ],
   });
   return tx;
