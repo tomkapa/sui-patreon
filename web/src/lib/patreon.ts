@@ -1,7 +1,7 @@
 import { bcsCreatorInfo } from '@/types/bcs';
 import { Transaction } from '@mysten/sui/transactions';
 import { SUI_CLOCK_OBJECT_ID } from '@mysten/sui/utils';
-import { CONFIG, suiClient } from './config';
+import { CONFIG } from './config';
 
 const createProfile = (name: string, bio: string, avatarUrl: string) => {
   const tx = new Transaction();

@@ -7,7 +7,7 @@ import { AdaptiveLayout } from '@/components/layout/adaptive-layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { createContent } from '@/lib/walrus';
-import { getUserAddress } from '@/lib/zklogin';
+import { useUser } from '@/contexts/user-context';
 import { useSignAndExecuteTransaction } from '@mysten/dapp-kit';
 import { Transaction } from '@mysten/sui/transactions';
 
@@ -36,6 +36,7 @@ export default function NewCreatorContentPage() {
   >([]);
   const { mutateAsync: signAndExecuteTransaction } =
     useSignAndExecuteTransaction();
+  const { user } = useUser();
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -47,7 +48,7 @@ export default function NewCreatorContentPage() {
       return;
     }
 
-    const userAddress = getUserAddress();
+    const userAddress = user?.address;
     if (!userAddress) {
       setErrorMessage('Please complete zkLogin before uploading content.');
       return;
