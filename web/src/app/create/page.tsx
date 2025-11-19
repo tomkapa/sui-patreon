@@ -6,7 +6,7 @@ import { AdaptiveLayout } from '@/components/layout/adaptive-layout';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useCreatorProfile } from '@/hooks/api/useCreatorQueries';
-import { walrusClient } from '@/lib/config';
+import { computeID, CONFIG, sealClient, walrusClient } from '@/lib/config';
 import { patreon } from '@/lib/patreon';
 import { validateCreatePost, ValidationError } from '@/lib/validation';
 import { CreatePostFormData, MediaType } from '@/types';
@@ -93,15 +93,26 @@ export default function CreatePage() {
       console.log('Publishing post:', formData);
 
       // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      const nonce = Date.now();
+      const encodedExclusiveFile = await sealClient.encrypt({
+        threshold: 2,
+        packageId: CONFIG.PACKAGE_ID,
+        id: computeID(nonce, userAddress),
+        data: new Uint8Array(await formData.exclusiveFile!.arrayBuffer()),
+      });
       const flow = walrusClient.writeFilesFlow({
-        files: [formData.previewFile!, formData.exclusiveFile!].map((f) =>
+        files: [
           WalrusFile.from({
-            contents: f,
-            identifier: f.name,
-            tags: { 'content-type': f.type },
-          })
-        ),
+            contents: formData.previewFile!,
+            identifier: formData.previewFile!.name,
+            tags: { 'content-type': formData.previewFile!.type },
+          }),
+          WalrusFile.from({
+            contents: encodedExclusiveFile.encryptedObject,
+            identifier: 'exclusive.enc',
+            tags: { 'content-type': 'application/encrypted' },
+          }),
+        ],
       });
       await flow.encode();
       const tx = flow.register({
@@ -116,7 +127,7 @@ export default function CreatePage() {
       const files = await flow.listFiles();
       console.log('Uploaded files:', files);
       const createTx = patreon.createContent(
-        Date.now(),
+        nonce,
         formData.title,
         formData.content,
         formData.mediaType!,

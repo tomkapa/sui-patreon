@@ -1,7 +1,8 @@
 import { SealClient, SessionKey } from '@mysten/seal';
 import { getFullnodeUrl, SuiClient } from '@mysten/sui/client';
-import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
 import { SignatureWithBytes } from '@mysten/sui/cryptography';
+import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
+import { fromHex, toHex } from '@mysten/sui/utils';
 import { WalrusClient } from '@mysten/walrus';
 import dot from 'dotenv';
 
@@ -59,9 +60,7 @@ let sessionKey: SessionKey | undefined;
 
 // Initialize server-only code only on server-side
 if (typeof window === 'undefined') {
-  keypair = Ed25519Keypair.fromSecretKey(
-    process.env.PRIVATE_KEY as string
-  );
+  keypair = Ed25519Keypair.fromSecretKey(process.env.PRIVATE_KEY as string);
 
   // Initialize session key asynchronously
   (async () => {
@@ -81,7 +80,7 @@ if (typeof window === 'undefined') {
 }
 
 // Export server-only values (will be undefined on client-side)
-export { keypair, suiClient, walrusClient, sealClient, sessionKey };
+export { keypair, sealClient, sessionKey, suiClient, walrusClient };
 
 // Export getSessionKey function for creating session keys with user signing
 export const getSessionKey = async (
@@ -91,9 +90,11 @@ export const getSessionKey = async (
   ttlMin = 10
 ) => {
   if (!suiClient) {
-    throw new Error('suiClient is not initialized. This function can only be called on the server side.');
+    throw new Error(
+      'suiClient is not initialized. This function can only be called on the server side.'
+    );
   }
-  
+
   const sessionKey = await SessionKey.create({
     address,
     packageId,
@@ -104,4 +105,13 @@ export const getSessionKey = async (
   const { signature } = await signPersonalMessage(message); // User confirms in wallet
   sessionKey.setPersonalMessageSignature(signature); // Initialization complete
   return sessionKey;
+};
+
+export const computeID = (nonce: number, owner: string): string => {
+  const nonceBytes = new Uint8Array(8);
+  const view = new DataView(nonceBytes.buffer);
+  view.setBigUint64(0, BigInt(nonce), true);
+
+  const addressBytes = fromHex(owner);
+  return toHex(new Uint8Array([...addressBytes, ...nonceBytes]));
 };
