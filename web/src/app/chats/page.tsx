@@ -26,7 +26,7 @@ export default function ChatsPage() {
 
   return (
     <AdaptiveLayout>
-      <main className="p-6 max-w-7xl mx-auto">
+      <main className="p-6 max-w-8xl mx-auto">
           {currentAccount ? (
             channelId ? (
               <Channel

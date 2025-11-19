@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useMessaging } from '@/hooks/useMessaging';
 import { formatTimestamp, formatAddress } from '@/lib/messaging/formatters';
 import { Button } from '@/components/ui/button';
-import { MessageSquare, RefreshCw } from 'lucide-react';
+import { MessageSquare, RefreshCw, Eye, EyeOff } from 'lucide-react';
 
 interface ChannelListProps {
   onChannelSelect: (channelId: string) => void;
@@ -12,10 +12,25 @@ interface ChannelListProps {
 
 export function ChannelList({ onChannelSelect }: ChannelListProps) {
   const { channels, isFetchingChannels, fetchChannels, isReady } = useMessaging();
+  // Track visible messages (messages are hidden by default)
+  const [visibleMessages, setVisibleMessages] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     console.log('Channels updated:', channels);
   }, [channels]);
+
+  const toggleMessageVisibility = (channelId: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent channel selection when clicking the message div
+    setVisibleMessages(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(channelId)) {
+        newSet.delete(channelId);
+      } else {
+        newSet.add(channelId);
+      }
+      return newSet;
+    });
+  };
 
   // Auto-refresh channels every 5 seconds when component is mounted
   useEffect(() => {
@@ -29,8 +44,8 @@ export function ChannelList({ onChannelSelect }: ChannelListProps) {
   }, [isReady, fetchChannels]);
 
   return (
-    <div className="rounded-xl border bg-gradient-to-br from-card to-card/50 shadow-sm">
-      <div className="flex items-center justify-between border-b p-6">
+    <div className="flex flex-col rounded-xl border bg-gradient-to-br from-card to-card/50 shadow-sm h-full max-h-149">
+      <div className="flex items-center justify-between border-b p-6 flex-shrink-0">
         <div>
           <h3 className="text-xl font-bold tracking-tight">Your Channels</h3>
           <p className="text-sm text-muted-foreground mt-0.5">
@@ -48,7 +63,7 @@ export function ChannelList({ onChannelSelect }: ChannelListProps) {
         </Button>
       </div>
 
-      <div className="p-6">
+      <div className="p-6 overflow-y-auto flex-1">
         {!isReady ? (
           <div className="py-12 text-center">
             <div className="inline-flex items-center gap-2 text-sm text-muted-foreground">
@@ -117,16 +132,32 @@ export function ChannelList({ onChannelSelect }: ChannelListProps) {
                 </div>
 
                 {channel.last_message && (
-                  <div className="rounded-lg bg-muted/30 p-3 border">
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1.5">Last Message</p>
-                    <p className="text-sm line-clamp-2 mb-2">
-                      {channel.last_message.text}
-                    </p>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <span className="font-medium">{formatAddress(channel.last_message.sender)}</span>
-                      <span>•</span>
-                      <span>{formatTimestamp(channel.last_message?.createdAtMs)}</span>
+                  <div 
+                    onClick={(e) => toggleMessageVisibility(channel.id.id, e)}
+                    className="rounded-lg bg-muted/30 p-3 border cursor-pointer hover:bg-muted/40 transition-colors"
+                  >
+                    <div className="flex items-center justify-between mb-1.5">
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Last Message</p>
+                      <div className="p-1">
+                        {visibleMessages.has(channel.id.id) ? (
+                          <Eye className="h-3.5 w-3.5 text-muted-foreground" />
+                        ) : (
+                          <EyeOff className="h-3.5 w-3.5 text-muted-foreground" />
+                        )}
+                      </div>
                     </div>
+                    {visibleMessages.has(channel.id.id) && (
+                      <>
+                        <p className="text-sm line-clamp-2 mb-2">
+                          {channel.last_message.text}
+                        </p>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <span className="font-medium">{formatAddress(channel.last_message.sender)}</span>
+                          <span>•</span>
+                          <span>{formatTimestamp(channel.last_message?.createdAtMs)}</span>
+                        </div>
+                      </>
+                    )}
                   </div>
                 )}
               </div>
