@@ -37,7 +37,22 @@ export default function RootLayout({
           <SessionKeyProvider>
             <MessagingClientProvider>
               <UserProvider>{children}</UserProvider>
-              <Toaster position="bottom-right" richColors />
+              <Toaster
+                position="bottom-right"
+                richColors
+                closeButton
+                duration={10000}
+                toastOptions={{
+                  style: {
+                    background: 'var(--card)',
+                    color: 'var(--foreground)',
+                    border: '1px solid var(--border)',
+                    minWidth: '400px',
+                    padding: '16px 20px',
+                    fontSize: '15px',
+                  },
+                }}
+              />
             </MessagingClientProvider>
           </SessionKeyProvider>
         </AppWrapper>

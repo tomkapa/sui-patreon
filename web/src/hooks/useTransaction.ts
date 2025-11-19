@@ -19,7 +19,7 @@
 
 import { useSignAndExecuteTransaction, useSuiClient } from '@mysten/dapp-kit';
 import { Transaction } from '@mysten/sui/transactions';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 import { useState } from 'react';
 
 export interface TransactionOptions {
@@ -50,14 +50,8 @@ export function useTransaction() {
         transaction: tx,
       });
 
-      // Show info toast with transaction hash
-      const explorerUrl = `https://suiscan.xyz/testnet/tx/${result.digest}`;
-      toast.info('Transaction sent', {
-        description: `View on Explorer: ${explorerUrl}`,
-        action: {
-          label: 'View',
-          onClick: () => window.open(explorerUrl, '_blank'),
-        },
+      // Show transaction toast with explorer link
+      toast.transaction('Transaction sent', result.digest, {
         duration: 3000,
       });
 

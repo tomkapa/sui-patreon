@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
-import { Home, Compass, MessageSquare, Bell, Settings, User, Loader2 } from "lucide-react";
+import { Home, Compass, MessageSquare, Bell, Settings, Loader2 } from "lucide-react";
 import Image from "next/image";
-import { cn, formatAddress } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { useUser } from "@/contexts/user-context";
 import { fetchRecentVisits } from "@/services/visits";
 import { getUserAddress } from "@/lib/user-session";
@@ -22,19 +22,20 @@ const navItems = [
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { user } = useUser();
   const { trackCreatorVisit } = useVisitTracking();
+  const { user } = useUser(); // Get actual logged-in user
 
   // State for recently visited creators
   const [recentlyVisited, setRecentlyVisited] = useState<CreatorProfile[]>([]);
   const [isLoadingVisits, setIsLoadingVisits] = useState(true);
 
-  // Fetch recent visits on mount
+  // Fetch recent visits on mount and when user changes
   useEffect(() => {
     const loadRecentVisits = async () => {
       try {
         setIsLoadingVisits(true);
-        const userAddress = getUserAddress();
+        // Use actual logged-in user address, fall back to visit tracking address
+        const userAddress = user?.address || getUserAddress();
 
         if (userAddress) {
           const visits = await fetchRecentVisits(userAddress, 3);
@@ -48,7 +49,7 @@ export function Sidebar() {
     };
 
     loadRecentVisits();
-  }, []);
+  }, [user]); // Re-fetch when user changes
 
   // Handle creator card click - track visit
   const handleCreatorClick = useCallback(
@@ -130,54 +131,6 @@ export function Sidebar() {
             </div>
           </div>
         ) : null}
-
-        <div className="flex-1" />
-
-        {/* User Section */}
-        <div className="border-t border-border p-4">
-          <Link
-            href="/profile"
-            className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-          >
-            {user ? (
-              <>
-                {user.avatarUrl ? (
-                  <div className="relative h-8 w-8 flex-shrink-0 overflow-hidden rounded-full">
-                    <Image
-                      src={user.avatarUrl}
-                      alt={user.displayName || "User"}
-                      fill
-                      className="object-cover"
-                      unoptimized
-                    />
-                  </div>
-                ) : (
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
-                    <User className="h-4 w-4" />
-                  </div>
-                )}
-                <div className="flex-1 overflow-hidden">
-                  <p className="truncate text-sm font-medium text-foreground">
-                    {user.displayName || "User"}
-                  </p>
-                  <p className="truncate text-xs text-muted-foreground">
-                    {formatAddress(user.address)}
-                  </p>
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
-                  <User className="h-4 w-4" />
-                </div>
-                <div className="flex-1 overflow-hidden">
-                  <p className="truncate text-sm font-medium">Guest User</p>
-                  <p className="truncate text-xs text-muted-foreground">Not connected</p>
-                </div>
-              </>
-            )}
-          </Link>
-        </div>
       </div>
     </aside>
   );

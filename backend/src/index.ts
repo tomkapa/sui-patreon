@@ -27,12 +27,11 @@ const execAsync = promisify(exec);
 
 const app = express();
 const PORT = process.env.PORT || 3001;
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
 
-// CORS configuration
+// CORS configuration - Allow all origins
 app.use(cors({
-  origin: FRONTEND_URL,
-  credentials: true,
+  origin: '*', // Allow all origins
+  credentials: false, // Set to false when origin is '*'
 }));
 
 // Body parsing middleware with 50MB limit for file uploads
@@ -137,7 +136,7 @@ async function startServer(): Promise<void> {
     app.listen(PORT, () => {
       console.log(`🚀 Backend API running on port ${PORT}`);
       console.log(`📡 Runtime: Bun`);
-      console.log(`🌐 CORS enabled for: ${FRONTEND_URL}`);
+      console.log(`🌐 CORS enabled for: * (all origins)`);
       console.log(`💚 Health check: http://localhost:${PORT}/health`);
       console.log(`🗄️  Database: PostgreSQL (Prisma ORM)`);
     });

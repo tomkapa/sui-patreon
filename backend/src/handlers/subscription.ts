@@ -145,7 +145,7 @@ export async function handleTierPriceUpdated(
 
 /**
  * Handle TierDeactivated event
- * Sets Tier isActive to false in database with full event context
+ * Sets Tier isActive to false in database
  * Retries with exponential backoff if tier doesn't exist yet (race condition with TierCreated)
  */
 export async function handleTierDeactivated(
@@ -154,17 +154,14 @@ export async function handleTierDeactivated(
   eventSeq: string
 ): Promise<void> {
   try {
-    const { tier_id, creator, name, description, price } = event.parsedJson as {
+    const { tier_id, creator, timestamp } = event.parsedJson as {
       tier_id: string;
       creator: string;
-      name: string;
-      description: string;
-      price: string;
       timestamp: string;
     };
 
     console.log(
-      `[TierDeactivated] Processing event for tier ${name} (${tier_id}) by creator ${creator}`
+      `[TierDeactivated] Processing event for tier ${tier_id} by creator ${creator}`
     );
 
     // Retry logic to handle race condition where TierDeactivated arrives before TierCreated
@@ -182,18 +179,15 @@ export async function handleTierDeactivated(
           );
         }
 
-        // Deactivate tier and ensure data is up-to-date from event
+        // Deactivate tier (only update isActive field)
         await prisma.tier.update({
           where: { id: tier.id },
           data: {
             isActive: false,
-            name: name,
-            description: description || '',
-            price: BigInt(price),
           },
         });
 
-        console.log(`[TierDeactivated] Successfully deactivated tier ${name} (${tier_id})`);
+        console.log(`[TierDeactivated] Successfully deactivated tier ${tier.name} (${tier_id})`);
       },
       isDependencyNotFoundError,
       {

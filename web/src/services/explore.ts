@@ -190,7 +190,8 @@ export async function fetchCategories(): Promise<ExploreCategory[]> {
  */
 export async function fetchNewCreators(
   limit: number = 6,
-  offset: number = 0
+  offset: number = 0,
+  userAddress?: string
 ): Promise<ExploreCreator[]> {
   if (USE_MOCK_DATA) {
     return Promise.resolve(MOCK_CREATORS.slice(offset, offset + limit));
@@ -200,6 +201,11 @@ export async function fetchNewCreators(
     const queryParams = new URLSearchParams();
     queryParams.append("limit", limit.toString());
     queryParams.append("offset", offset.toString());
+
+    // Add userAddress to exclude connected user
+    if (userAddress) {
+      queryParams.append("userAddress", userAddress);
+    }
 
     const url = `${API_BASE_URL}/api/explore/creators/new?${queryParams.toString()}`;
     const response = await fetch(url, {
@@ -229,7 +235,8 @@ export async function fetchNewCreators(
 export async function fetchCreatorsByCategory(
   category: string,
   limit: number = 9,
-  offset: number = 0
+  offset: number = 0,
+  userAddress?: string
 ): Promise<ExploreCreator[]> {
   if (USE_MOCK_DATA) {
     const filtered = MOCK_CREATORS.filter(
@@ -243,6 +250,11 @@ export async function fetchCreatorsByCategory(
     queryParams.append("category", category);
     queryParams.append("limit", limit.toString());
     queryParams.append("offset", offset.toString());
+
+    // Add userAddress to exclude connected user
+    if (userAddress) {
+      queryParams.append("userAddress", userAddress);
+    }
 
     const url = `${API_BASE_URL}/api/explore/creators?${queryParams.toString()}`;
     const response = await fetch(url, {

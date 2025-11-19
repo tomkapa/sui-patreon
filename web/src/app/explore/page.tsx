@@ -13,8 +13,11 @@ import {
   fetchCreatorsByCategory,
 } from "@/services/explore";
 import { ExploreCategory, ExploreCreator } from "@/types";
+import { getUserAddress } from "@/lib/user-session";
+import { useUser } from "@/contexts/user-context";
 
 export default function ExplorePage() {
+  const { user } = useUser(); // Get actual logged-in user
   const [categories, setCategories] = useState<ExploreCategory[]>([]);
   const [newCreators, setNewCreators] = useState<ExploreCreator[]>([]);
   const [filteredCreators, setFilteredCreators] = useState<ExploreCreator[]>(
@@ -47,7 +50,9 @@ export default function ExplorePage() {
     async function loadNewCreators() {
       try {
         setIsLoadingCreators(true);
-        const data = await fetchNewCreators(6);
+        // Use actual logged-in user address for filtering
+        const userAddress = user?.address;
+        const data = await fetchNewCreators(6, 0, userAddress);
         setNewCreators(data);
       } catch (error) {
         console.error("Failed to load new creators:", error);
@@ -57,7 +62,7 @@ export default function ExplorePage() {
     }
 
     loadNewCreators();
-  }, []);
+  }, [user]); // Re-fetch when user changes
 
   // Handle category filter
   const handleCategoryClick = async (categoryName: string) => {
@@ -65,7 +70,9 @@ export default function ExplorePage() {
     setIsLoadingFiltered(true);
 
     try {
-      const data = await fetchCreatorsByCategory(categoryName, 9);
+      // Use actual logged-in user address for filtering
+      const userAddress = user?.address;
+      const data = await fetchCreatorsByCategory(categoryName, 9, 0, userAddress);
       setFilteredCreators(data);
     } catch (error) {
       console.error("Failed to load filtered creators:", error);

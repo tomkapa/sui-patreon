@@ -14,7 +14,7 @@ import { fetchSubscriptionStatus, SubscriptionStatus } from "@/services/subscrip
 import { use } from "react";
 import { useCurrentAccount } from "@mysten/dapp-kit";
 import { usePurchaseSubscription } from "@/lib/sui/subscription";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 
 interface PageProps {
   params: Promise<{ address: string }>;

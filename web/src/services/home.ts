@@ -32,9 +32,12 @@ export async function fetchHomeCreators(
   queryParams.append("section", section);
   queryParams.append("limit", limit.toString());
 
-  // Add userAddress for recently-visited section
-  if (userAddress && section === "recently-visited") {
+  // Add userAddress to exclude connected user from all sections
+  if (userAddress) {
     queryParams.append("userAddress", userAddress);
+    console.log('🌐 [API] Sending userAddress:', userAddress, 'for section:', section);
+  } else {
+    console.log('⚠️ [API] No userAddress provided for section:', section);
   }
 
   const url = `${API_BASE_URL}/api/home/creators?${queryParams.toString()}`;

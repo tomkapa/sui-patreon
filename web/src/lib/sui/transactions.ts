@@ -6,7 +6,7 @@
 import { useSignAndExecuteTransaction, useSuiClient } from '@mysten/dapp-kit';
 import { Transaction } from '@mysten/sui/transactions';
 import { useCallback, useState } from 'react';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 
 export interface TransactionResult {
   digest: string;
@@ -94,8 +94,7 @@ export function useTransaction(): UseTransactionResult {
 
         // Show transaction hash toast immediately
         if (showTxHashToast) {
-          toast.info('Transaction sent', {
-            description: `Hash: ${result.digest.slice(0, 10)}...`,
+          toast.transaction('Transaction sent', result.digest, {
             duration: 3000,
           });
         }

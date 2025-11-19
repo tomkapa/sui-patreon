@@ -187,8 +187,8 @@ async function main() {
       title: 'Introduction to Sui Blockchain',
       description: 'Learn the basics of Sui blockchain and Move programming',
       contentType: 'video/mp4',
-      walrusBlobId: 'blob_video_1',
-      previewBlobId: 'blob_preview_1',
+      sealedPatchId: 'blob_video_1',
+      previewPatchId: 'blob_preview_1',
       isPublic: true, // Public content
     },
   });
@@ -200,8 +200,8 @@ async function main() {
       title: 'Advanced Move Patterns',
       description: 'Deep dive into advanced Move programming patterns',
       contentType: 'video/mp4',
-      walrusBlobId: 'blob_video_2',
-      previewBlobId: 'blob_preview_2',
+      sealedPatchId: 'blob_video_2',
+      previewPatchId: 'blob_preview_2',
       isPublic: false, // Premium content
     },
   });
@@ -214,8 +214,8 @@ async function main() {
       title: 'Digital Art Collection 2024',
       description: 'My latest digital art pieces',
       contentType: 'image/png',
-      walrusBlobId: 'blob_image_1',
-      previewBlobId: null, // No preview
+      sealedPatchId: 'blob_image_1',
+      previewPatchId: null, // No preview
       isPublic: false,
     },
   });
@@ -227,8 +227,8 @@ async function main() {
       title: 'NFT Creation Process',
       description: 'Behind the scenes of creating NFTs',
       contentType: 'video/mp4',
-      walrusBlobId: 'blob_video_3',
-      previewBlobId: 'blob_preview_3',
+      sealedPatchId: 'blob_video_3',
+      previewPatchId: 'blob_preview_3',
       isPublic: true,
     },
   });

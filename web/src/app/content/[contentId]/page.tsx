@@ -22,7 +22,7 @@ import {
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { use, useEffect, useMemo, useState } from 'react';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 
 interface PageProps {
   params: Promise<{ contentId: string }>;
@@ -192,8 +192,8 @@ export default function ContentDetailPage({ params }: PageProps) {
     return shouldShowExclusive
       ? decryped
       : contentData?.previewId
-      ? getWalrusUrl(contentData.previewId)
-      : null;
+        ? getWalrusUrl(contentData.previewId)
+        : null;
   }, [shouldShowExclusive, decryped, contentData?.previewId]);
   useEffect(() => {
     console.log({ mediaUrl, type: contentData?.contentType });
@@ -317,9 +317,8 @@ export default function ContentDetailPage({ params }: PageProps) {
             {/* Creator Info Bar */}
             <div className='mb-6 flex items-center justify-between'>
               <div
-                className={`flex items-center gap-4 ${
-                  isPublic ? 'cursor-pointer' : 'cursor-default'
-                }`}
+                className={`flex items-center gap-4 ${isPublic ? 'cursor-pointer' : 'cursor-default'
+                  }`}
                 onClick={handleCreatorClick}
               >
                 {/* Avatar */}
@@ -355,9 +354,8 @@ export default function ContentDetailPage({ params }: PageProps) {
                   className='gap-2'
                 >
                   <Heart
-                    className={`h-4 w-4 ${
-                      isLiked ? 'fill-red-500 text-red-500' : ''
-                    }`}
+                    className={`h-4 w-4 ${isLiked ? 'fill-red-500 text-red-500' : ''
+                      }`}
                   />
                   <span>{formatNumber(likes + (isLiked ? 1 : 0))}</span>
                 </Button>

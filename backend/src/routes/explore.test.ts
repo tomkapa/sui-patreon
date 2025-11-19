@@ -331,5 +331,43 @@ describe('Explore API', () => {
 
       expect(response.body.creators.length).toBeLessThanOrEqual(limit);
     });
+
+    it('should exclude connected user from creators list', async () => {
+      const userAddress = '0xexploretest1'; // Music creator
+      const response = await request(app)
+        .get('/api/explore/creators')
+        .query({ userAddress })
+        .expect(200);
+
+      const creators = response.body.creators;
+      const userCreator = creators.find((c: any) => c.address === userAddress);
+
+      // Connected user should not be in the results
+      expect(userCreator).toBeUndefined();
+    });
+
+    it('should exclude connected user from new creators list', async () => {
+      const userAddress = '0xexploretest2'; // Gaming creator
+      const response = await request(app)
+        .get('/api/explore/creators/new')
+        .query({ userAddress })
+        .expect(200);
+
+      const creators = response.body.creators;
+      const userCreator = creators.find((c: any) => c.address === userAddress);
+
+      // Connected user should not be in the results
+      expect(userCreator).toBeUndefined();
+    });
+
+    it('should return all creators when userAddress is not provided', async () => {
+      const response = await request(app)
+        .get('/api/explore/creators')
+        .expect(200);
+
+      const creators = response.body.creators;
+      // Should include all test creators
+      expect(creators.length).toBeGreaterThanOrEqual(3);
+    });
   });
 });

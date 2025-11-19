@@ -1,0 +1,36 @@
+/**
+ * Validation schema for updating creator profile
+ *
+ * Uses Zod for type-safe form validation
+ */
+
+import { z } from 'zod';
+
+export const updateProfileFormSchema = z.object({
+  name: z
+    .string()
+    .min(1, 'Page name is required')
+    .max(100, 'Page name must be less than 100 characters')
+    .trim(),
+
+  bio: z
+    .string()
+    .max(500, 'Bio must be less than 500 characters')
+    .trim()
+    .optional()
+    .default(''),
+
+  avatar: z
+    .instanceof(File)
+    .refine(
+      (file) => file.size <= 10 * 1024 * 1024,
+      'Avatar must be less than 10MB'
+    )
+    .refine(
+      (file) => ['image/jpeg', 'image/jpg', 'image/png'].includes(file.type),
+      'Avatar must be a JPEG or PNG image'
+    )
+    .optional(),
+});
+
+export type UpdateProfileFormData = z.infer<typeof updateProfileFormSchema>;

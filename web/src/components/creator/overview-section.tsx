@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { Users, Info, DollarSign } from "lucide-react";
 import { CreatorAnalytics } from "@/types";
 
@@ -16,12 +15,6 @@ export function OverviewSection({ analytics }: OverviewSectionProps) {
         <button className="rounded-full p-1 hover:bg-accent">
           <Info className="h-4 w-4 text-muted-foreground" />
         </button>
-        <Link
-          href="/creator/insights"
-          className="ml-auto text-sm font-medium text-primary hover:underline"
-        >
-          Go to Insights →
-        </Link>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

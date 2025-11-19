@@ -37,24 +37,7 @@ import {
   Info,
   Loader2,
 } from "lucide-react";
-
-// Mock data - fallback when API is unavailable
-const mockPosts: LibraryPost[] = [
-  {
-    id: "1",
-    title: "Keep calm seal",
-    publishDate: new Date("2025-11-17"),
-    tierAccess: "Public",
-    postType: "text",
-    thumbnailUrl: "/placeholder-seal.jpg",
-    isDraft: false,
-    viewCount: 1234,
-    likeCount: 89,
-  },
-];
-
-// Use mock data in development or when USE_MOCK_DATA is true
-const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK_DATA === "true";
+import { useCurrentAccount } from "@mysten/dapp-kit";
 
 const getPostTypeIcon = (type: LibraryPost["postType"]) => {
   switch (type) {
@@ -82,7 +65,14 @@ const getPostTypeLabel = (type: LibraryPost["postType"]) => {
   }
 };
 
+// Mock wallet address for development (same as dashboard)
+const MOCK_WALLET_ADDRESS =
+  "0x1abec7f223edeb5120fab9c0cc133db6167145937fd1261777e5eeab0e87f966";
+
 export default function LibraryPage() {
+  const currentAccount = useCurrentAccount();
+  const creatorAddress = currentAccount?.address || MOCK_WALLET_ADDRESS;
+
   const [activeTab, setActiveTab] = useState<LibraryTab>("posts");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPosts, setSelectedPosts] = useState<Set<string>>(new Set());
@@ -93,42 +83,19 @@ export default function LibraryPage() {
   const postsPerPage = 20;
 
   // API state
-  const [posts, setPosts] = useState<LibraryPost[]>(mockPosts);
+  const [posts, setPosts] = useState<LibraryPost[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pagination, setPagination] = useState({
     currentPage: 1,
     totalPages: 1,
-    totalCount: mockPosts.length,
+    totalCount: 0,
     hasNext: false,
     hasPrev: false,
   });
 
-  // Mock creator address - replace with actual user context
-  const creatorAddress = "0x1234567890abcdef";
-
   // Fetch posts from API
   useEffect(() => {
-    if (USE_MOCK_DATA) {
-      // Use mock data
-      const filtered = mockPosts.filter((post) => {
-        const matchesTab =
-          (activeTab === "posts" && !post.isDraft) ||
-          (activeTab === "drafts" && post.isDraft) ||
-          activeTab === "collections";
-        return matchesTab;
-      });
-      setPosts(filtered);
-      setPagination({
-        currentPage: 1,
-        totalPages: 1,
-        totalCount: filtered.length,
-        hasNext: false,
-        hasPrev: false,
-      });
-      return;
-    }
-
     // Fetch from API
     const fetchPosts = async () => {
       setIsLoading(true);
@@ -149,19 +116,13 @@ export default function LibraryPage() {
         setPagination(response.pagination);
       } catch (err) {
         console.error("Failed to fetch library posts:", err);
-        // Fallback to mock data on error - don't set error to show mock data properly
-        const filtered = mockPosts.filter((post) => {
-          const matchesTab =
-            (activeTab === "posts" && !post.isDraft) ||
-            (activeTab === "drafts" && post.isDraft) ||
-            activeTab === "collections";
-          return matchesTab;
-        });
-        setPosts(filtered);
+        setError(err instanceof Error ? err.message : "Failed to load posts");
+        // Clear posts on error
+        setPosts([]);
         setPagination({
           currentPage: 1,
-          totalPages: 1,
-          totalCount: filtered.length,
+          totalPages: 0,
+          totalCount: 0,
           hasNext: false,
           hasPrev: false,
         });
@@ -171,7 +132,7 @@ export default function LibraryPage() {
     };
 
     fetchPosts();
-  }, [activeTab, searchQuery, filterType, sortBy, sortOrder, currentPage]);
+  }, [creatorAddress, activeTab, searchQuery, filterType, sortBy, sortOrder, currentPage]);
 
   // Display posts (either from API or filtered mock data)
   const displayPosts = posts;

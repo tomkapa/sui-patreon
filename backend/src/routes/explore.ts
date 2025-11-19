@@ -142,6 +142,7 @@ router.get('/categories', async (_req: Request, res: Response) => {
  * Query params:
  * - limit: number (default: 12, max: 50)
  * - offset: number (default: 0)
+ * - userAddress: string (optional, will be excluded from results if provided)
  *
  * @returns Array of creators sorted by creation date (newest first)
  */
@@ -149,16 +150,23 @@ router.get('/creators/new', async (req: Request, res: Response) => {
   try {
     const limit = validateLimit(req.query.limit as string, 12, 50);
     const offset = parseInt((req.query.offset as string) || '0', 10);
+    const userAddress = req.query.userAddress as string | undefined;
+
+    // Build where clause to exclude connected user if provided
+    const where = userAddress
+      ? { address: { not: userAddress } }
+      : {};
 
     // Fetch recently created creators
     const creators = await prisma.creator.findMany({
+      where,
       take: limit,
       skip: offset,
       orderBy: { createdAt: 'desc' },
     });
 
-    // Get total count for pagination
-    const total = await prisma.creator.count();
+    // Get total count for pagination (with same filter)
+    const total = await prisma.creator.count({ where });
 
     // Fetch follower counts for each creator
     const creatorsWithCounts = await Promise.all(
@@ -195,12 +203,13 @@ router.get('/creators/new', async (req: Request, res: Response) => {
  * - limit: number (default: 12, max: 50)
  * - offset: number (default: 0)
  * - sort: "newest" | "popular" (default: "popular")
+ * - userAddress: string (optional, will be excluded from results if provided)
  *
  * @returns Array of creators with pagination info
  */
 router.get('/creators', async (req: Request, res: Response) => {
   try {
-    const { category, sort } = req.query;
+    const { category, sort, userAddress } = req.query;
     const limit = validateLimit(req.query.limit as string, 12, 50);
     const offset = parseInt((req.query.offset as string) || '0', 10);
     const sortBy = (sort as string) || 'popular';
@@ -213,12 +222,19 @@ router.get('/creators', async (req: Request, res: Response) => {
     }
 
     // Build where clause
-    let where = {};
+    let where: any = {};
+
+    // Exclude connected user if userAddress is provided
+    if (userAddress && typeof userAddress === 'string') {
+      where.address = { not: userAddress };
+    }
+
+    // Filter by category if provided
     if (category && typeof category === 'string') {
       // Find category by slug
       const categoryDef = CATEGORIES.find((c) => c.slug === category);
       if (categoryDef) {
-        where = { category: categoryDef.name };
+        where.category = categoryDef.name;
       } else {
         return res.status(400).json({
           error: 'Invalid category',

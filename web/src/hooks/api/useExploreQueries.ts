@@ -38,18 +38,19 @@ export function useExploreCategories(options?: CategoriesQueryOptions) {
 interface UseNewCreatorsParams {
   limit?: number;
   offset?: number;
+  userAddress?: string;
 }
 
 /**
  * Fetch newly joined creators.
  */
 export function useNewCreators(
-  { limit = 6, offset = 0 }: UseNewCreatorsParams = {},
+  { limit = 6, offset = 0, userAddress }: UseNewCreatorsParams = {},
   options?: NewCreatorsQueryOptions
 ) {
   return useQuery({
-    queryKey: ["newCreators", limit, offset],
-    queryFn: () => fetchNewCreators(limit, offset),
+    queryKey: ["newCreators", limit, offset, userAddress],
+    queryFn: () => fetchNewCreators(limit, offset, userAddress),
     ...options,
   });
 }
@@ -58,18 +59,19 @@ interface UseCreatorsByCategoryParams {
   category: string;
   limit?: number;
   offset?: number;
+  userAddress?: string;
 }
 
 /**
  * Fetch creators filtered by category.
  */
 export function useCreatorsByCategory(
-  { category, limit = 9, offset = 0 }: UseCreatorsByCategoryParams,
+  { category, limit = 9, offset = 0, userAddress }: UseCreatorsByCategoryParams,
   options?: CreatorsByCategoryQueryOptions
 ) {
   return useQuery({
-    queryKey: ["creatorsByCategory", category, limit, offset],
-    queryFn: () => fetchCreatorsByCategory(category, limit, offset),
+    queryKey: ["creatorsByCategory", category, limit, offset, userAddress],
+    queryFn: () => fetchCreatorsByCategory(category, limit, offset, userAddress),
     enabled: Boolean(category),
     ...options,
   });

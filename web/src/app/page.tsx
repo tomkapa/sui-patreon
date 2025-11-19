@@ -11,9 +11,16 @@ import { fetchHomeCreators } from "@/services/home";
 import { CreatorProfile } from "@/types";
 import { getUserAddress } from "@/lib/user-session";
 import { useVisitTracking } from "@/hooks/useVisitTracking";
+import { useUser } from "@/contexts/user-context";
 
 export default function HomePage() {
   const { trackCreatorVisit } = useVisitTracking();
+  const { user } = useUser(); // Get actual logged-in user
+
+  // Debug: Log user info
+  useEffect(() => {
+    console.log('👤 [HomePage] User context:', user);
+  }, [user]);
 
   // State for each section
   const [recentlyVisited, setRecentlyVisited] = useState<CreatorProfile[]>([]);
@@ -37,7 +44,8 @@ export default function HomePage() {
       try {
         setIsLoadingRecent(true);
         setErrorRecent(null);
-        const userAddress = getUserAddress();
+        // Use actual logged-in user address, fall back to visit tracking address
+        const userAddress = user?.address || getUserAddress();
         const creators = await fetchHomeCreators("recently-visited", 6, userAddress);
         setRecentlyVisited(creators);
       } catch (error) {
@@ -55,7 +63,11 @@ export default function HomePage() {
       try {
         setIsLoadingRecommended(true);
         setErrorRecommended(null);
-        const creators = await fetchHomeCreators("recommended", 8);
+        // Use actual logged-in user address for filtering
+        const userAddress = user?.address;
+        console.log('🔍 [HomePage] Loading recommended creators, userAddress:', userAddress);
+        const creators = await fetchHomeCreators("recommended", 8, userAddress);
+        console.log('📦 [HomePage] Received creators:', creators.length, creators.map(c => c.displayName));
         setCreatorsForYou(creators);
       } catch (error) {
         console.error("Failed to fetch recommended creators:", error);
@@ -72,7 +84,9 @@ export default function HomePage() {
       try {
         setIsLoadingPopular(true);
         setErrorPopular(null);
-        const creators = await fetchHomeCreators("popular", 8);
+        // Use actual logged-in user address for filtering
+        const userAddress = user?.address;
+        const creators = await fetchHomeCreators("popular", 8, userAddress);
         setPopularThisWeek(creators);
       } catch (error) {
         console.error("Failed to fetch popular creators:", error);
@@ -88,7 +102,7 @@ export default function HomePage() {
     loadRecentlyVisited();
     loadRecommended();
     loadPopular();
-  }, []);
+  }, [user]); // Re-fetch when user changes
 
   return (
     <AdaptiveLayout>
@@ -160,15 +174,17 @@ export default function HomePage() {
         )}
 
         {/* Empty State for Non-Logged In Users */}
-        <section className="mt-12 rounded-lg border border-border bg-card p-8 text-center">
-          <h3 className="mb-2 text-lg font-semibold">Start supporting creators</h3>
-          <p className="mb-4 text-sm text-muted-foreground">
-            Connect your wallet to discover and support amazing creators on the Sui blockchain
-          </p>
-          <button className="rounded-lg bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90">
-            Connect Wallet
-          </button>
-        </section>
+        {!getUserAddress() && (
+          <section className="mt-12 rounded-lg border border-border bg-card p-8 text-center">
+            <h3 className="mb-2 text-lg font-semibold">Start supporting creators</h3>
+            <p className="mb-4 text-sm text-muted-foreground">
+              Connect your wallet to discover and support amazing creators on the Sui blockchain
+            </p>
+            <button className="rounded-lg bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90">
+              Connect Wallet
+            </button>
+          </section>
+        )}
       </main>
     </AdaptiveLayout>
   );

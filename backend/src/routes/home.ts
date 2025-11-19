@@ -75,7 +75,7 @@ router.get('/creators', async (req: Request, res: Response) => {
         break;
 
       case 'popular':
-        creators = await getPopularCreators(limit);
+        creators = await getPopularCreators(limit, userAddress as string);
         break;
     }
 
@@ -92,6 +92,7 @@ router.get('/creators', async (req: Request, res: Response) => {
  * Get recently visited creators
  * Returns creators based on user's visit history, sorted by most recent visit
  * Falls back to popular creators if no userAddress provided or no visits found
+ * Excludes the connected user from results
  */
 async function getRecentlyVisitedCreators(
   limit: number,
@@ -106,7 +107,7 @@ async function getRecentlyVisitedCreators(
       distinct: ['creatorId'], // Ensure each creator appears only once
     });
 
-    // If we have visits, return those creators
+    // If we have visits, return those creators (excluding self)
     if (visits.length > 0) {
       const creatorsWithCounts = await Promise.all(
         visits.map(async (visit) => {
@@ -114,7 +115,8 @@ async function getRecentlyVisitedCreators(
             where: { id: visit.creatorId },
           });
 
-          if (!creator) return null;
+          // Skip if creator doesn't exist or is the connected user
+          if (!creator || creator.address === userAddress) return null;
 
           const [followerCount, contentCount] = await Promise.all([
             getFollowerCount(creator.id),
@@ -129,7 +131,7 @@ async function getRecentlyVisitedCreators(
         })
       );
 
-      // Filter out null entries (deleted creators) and format response
+      // Filter out null entries (deleted creators and self) and format response
       const validCreators = creatorsWithCounts.filter((c) => c !== null);
       return validCreators.map(({ creator, followerCount, contentCount }) =>
         formatCreatorResponse(creator, followerCount, contentCount)
@@ -137,8 +139,10 @@ async function getRecentlyVisitedCreators(
     }
   }
 
-  // Fallback: return popular creators by follower count
+  // Fallback: return popular creators by follower count (excluding connected user)
+  const whereClause = userAddress ? { address: { not: userAddress } } : {};
   const allCreators = await prisma.creator.findMany({
+    where: whereClause,
     take: limit * 5, // Fetch more to account for filtering
     orderBy: { createdAt: 'desc' },
   });
@@ -171,13 +175,18 @@ async function getRecentlyVisitedCreators(
 /**
  * Get recommended creators
  * Returns creators with most content, sorted by content count then followers
+ * Excludes the connected user from results
  */
 async function getRecommendedCreators(
   limit: number,
-  _userAddress?: string
+  userAddress?: string
 ): Promise<CreatorResponse[]> {
+  // Build where clause to exclude connected user
+  const whereClause = userAddress ? { address: { not: userAddress } } : {};
+
   // Get all creators with their content counts
   const allCreators = await prisma.creator.findMany({
+    where: whereClause,
     take: limit * 5, // Fetch more to account for filtering
     orderBy: { createdAt: 'desc' },
   });
@@ -215,10 +224,15 @@ async function getRecommendedCreators(
 /**
  * Get popular creators
  * Returns creators with highest total views (sum of viewCount from their content)
+ * Excludes the connected user from results
  */
-async function getPopularCreators(limit: number): Promise<CreatorResponse[]> {
+async function getPopularCreators(limit: number, userAddress?: string): Promise<CreatorResponse[]> {
+  // Build where clause to exclude connected user
+  const whereClause = userAddress ? { address: { not: userAddress } } : {};
+
   // Get all creators
   const allCreators = await prisma.creator.findMany({
+    where: whereClause,
     take: limit * 5, // Fetch more to account for filtering
     orderBy: { createdAt: 'desc' },
   });

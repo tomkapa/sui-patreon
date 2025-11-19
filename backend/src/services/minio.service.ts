@@ -1,13 +1,20 @@
 /**
- * MinIO Public Bucket Storage Service
+ * MinIO S3-Compatible Storage Service
  *
- * Simple service for uploading avatar images to a public MinIO bucket.
- * The bucket is pre-configured and publicly accessible for reads.
+ * Uses AWS SDK for S3-compatible operations with MinIO.
+ * Supports authenticated uploads with proper credentials.
  *
  * Configuration required:
- * - MINIO_PUBLIC_URL: Base URL of the public bucket (e.g., https://minio.7k.ag/sui-patreon)
+ * - MINIO_ENDPOINT: MinIO server endpoint (e.g., minio.7k.ag)
+ * - MINIO_ACCESS_KEY: MinIO access key
+ * - MINIO_SECRET_KEY: MinIO secret key
+ * - MINIO_BUCKET: Bucket name (e.g., sui-patreon)
+ * - MINIO_REGION: Region (default: us-east-1)
+ * - MINIO_USE_SSL: Use HTTPS (default: true)
+ * - MINIO_PUBLIC_URL: Public URL for serving files (e.g., https://minio.7k.ag/sui-patreon)
  */
 
+import { S3Client, PutObjectCommand, GetObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
 import { randomUUID } from 'crypto';
 
 /**
@@ -22,28 +29,61 @@ const ALLOWED_MIME_TYPES = [
 type AllowedMimeType = typeof ALLOWED_MIME_TYPES[number];
 
 /**
- * MinIO Public Bucket Storage
+ * MinIO configuration interface
+ */
+interface MinioConfig {
+  endpoint: string;
+  accessKey: string;
+  secretKey: string;
+  bucket: string;
+  region?: string;
+  useSSL?: boolean;
+  publicUrl: string;
+}
+
+/**
+ * MinIO S3-Compatible Storage
  *
- * Handles upload of avatar images to a public bucket via direct HTTP uploads.
+ * Handles upload of avatar images using AWS S3 SDK with MinIO.
  * Files are publicly readable once uploaded.
  */
 export class MinioStorage {
+  private readonly s3Client: S3Client;
+  private readonly bucket: string;
   private readonly publicUrl: string;
 
   /**
-   * Initialize MinIO storage with public bucket URL
+   * Initialize MinIO storage with S3 client
    *
-   * @param publicUrl - Base URL of the public bucket
-   * @throws Error if publicUrl is not provided
+   * @param config - MinIO configuration
+   * @throws Error if required config is missing
    */
-  constructor(publicUrl: string) {
-    if (!publicUrl) {
-      throw new Error('MINIO_PUBLIC_URL is required');
+  constructor(config: MinioConfig) {
+    const { endpoint, accessKey, secretKey, bucket, region = 'us-east-1', useSSL = true, publicUrl } = config;
+
+    if (!endpoint || !accessKey || !secretKey || !bucket || !publicUrl) {
+      throw new Error('Missing required MinIO configuration');
     }
 
+    this.bucket = bucket;
     this.publicUrl = publicUrl.replace(/\/$/, ''); // Remove trailing slash
 
-    console.log('✅ MinIO Storage initialized', {
+    // Initialize S3 client for MinIO
+    this.s3Client = new S3Client({
+      endpoint: `${useSSL ? 'https' : 'http'}://${endpoint}`,
+      region,
+      credentials: {
+        accessKeyId: accessKey,
+        secretAccessKey: secretKey,
+      },
+      forcePathStyle: true, // Required for MinIO
+    });
+
+    console.log('✅ MinIO Storage initialized (S3 SDK)', {
+      endpoint,
+      bucket,
+      region,
+      ssl: useSSL,
       publicUrl: this.publicUrl,
     });
   }
@@ -63,12 +103,6 @@ export class MinioStorage {
    *
    * @param contentType - MIME type of the image
    * @returns Unique filename with appropriate extension
-   *
-   * @example
-   * ```typescript
-   * const filename = generateUniqueFilename('image/jpeg');
-   * // Returns: 'f47ac10b-58cc-4372-a567-0e02b2c3d479-1234567890.jpg'
-   * ```
    */
   private generateUniqueFilename(contentType: AllowedMimeType): string {
     const uuid = randomUUID();
@@ -95,18 +129,12 @@ export class MinioStorage {
   }
 
   /**
-   * Upload an avatar image to MinIO public bucket via HTTP PUT
+   * Upload an avatar image to MinIO using S3 SDK
    *
    * @param buffer - Image data as Buffer
    * @param contentType - MIME type of the image
    * @returns Promise resolving to object with filename and URL
    * @throws Error if content type is invalid or upload fails
-   *
-   * @example
-   * ```typescript
-   * const result = await minio.uploadAvatar(imageBuffer, 'image/jpeg');
-   * console.log(`Uploaded: ${result.url}`);
-   * ```
    */
   async uploadAvatar(
     buffer: Buffer,
@@ -126,68 +154,72 @@ export class MinioStorage {
     console.log(`📤 MinIO upload started: ${filename} (${sizeKB} KB, type: ${contentType})`);
 
     try {
-      // Upload via HTTP PUT to the public bucket
-      const response = await fetch(url, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': contentType,
-          'Content-Length': buffer.length.toString(),
-        },
-        body: buffer,
+      // Upload using S3 SDK
+      const command = new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: filename,
+        Body: buffer,
+        ContentType: contentType,
+        ContentLength: buffer.length,
+        // Note: Public access controlled by bucket policy, not ACL
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
+      await this.s3Client.send(command);
 
       console.log(`✅ MinIO upload successful: ${filename}`);
 
       return { filename, url };
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
-      console.error(`❌ MinIO upload failed (${filename}):`, message);
+      console.error(`❌ MinIO upload failed (${filename}):`, {
+        error: message,
+        errorDetails: error,
+      });
       throw new Error(`MinIO upload failed: ${message}`);
     }
   }
 
   /**
-   * Download an avatar image from MinIO public bucket
+   * Download an avatar image from MinIO
    *
    * @param filename - The filename to download
    * @returns Promise resolving to a Buffer containing the image data
    * @throws Error if download fails or file doesn't exist
-   *
-   * @example
-   * ```typescript
-   * const imageData = await minio.downloadAvatar('avatar-123.jpg');
-   * console.log(`Downloaded ${imageData.length} bytes`);
-   * ```
    */
   async downloadAvatar(filename: string): Promise<Buffer> {
-    const url = this.getAvatarUrl(filename);
-
     console.log(`📥 MinIO download started: ${filename}`);
 
     try {
-      const response = await fetch(url);
+      const command = new GetObjectCommand({
+        Bucket: this.bucket,
+        Key: filename,
+      });
 
-      if (!response.ok) {
-        if (response.status === 404) {
-          throw new Error(`Avatar not found: ${filename}`);
-        }
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      const response = await this.s3Client.send(command);
+
+      if (!response.Body) {
+        throw new Error('Empty response body');
       }
 
-      const arrayBuffer = await response.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
-      const sizeKB = (buffer.length / 1024).toFixed(2);
+      // Convert stream to buffer
+      const chunks: Uint8Array[] = [];
+      for await (const chunk of response.Body as any) {
+        chunks.push(chunk);
+      }
+      const buffer = Buffer.concat(chunks);
 
+      const sizeKB = (buffer.length / 1024).toFixed(2);
       console.log(`✅ MinIO download successful: ${filename} (${sizeKB} KB)`);
 
       return buffer;
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
       console.error(`❌ MinIO download failed (${filename}):`, message);
+
+      if (message.includes('NoSuchKey') || message.includes('NotFound')) {
+        throw new Error(`Avatar not found: ${filename}`);
+      }
+
       throw error;
     }
   }
@@ -197,41 +229,27 @@ export class MinioStorage {
    *
    * @param filename - The filename
    * @returns The public URL to access the avatar
-   *
-   * @example
-   * ```typescript
-   * const url = minio.getAvatarUrl('avatar-123.jpg');
-   * // Returns: https://minio.7k.ag/sui-patreon/avatar-123.jpg
-   * ```
    */
   getAvatarUrl(filename: string): string {
     return `${this.publicUrl}/${filename}`;
   }
 
   /**
-   * Check if an avatar exists in MinIO public bucket
+   * Check if an avatar exists in MinIO
    *
    * @param filename - The filename to check
    * @returns Promise resolving to true if avatar exists, false otherwise
-   *
-   * @example
-   * ```typescript
-   * const exists = await minio.avatarExists('avatar-123.jpg');
-   * if (exists) {
-   *   console.log('Avatar is available');
-   * }
-   * ```
    */
   async avatarExists(filename: string): Promise<boolean> {
-    const url = this.getAvatarUrl(filename);
-
     try {
-      const response = await fetch(url, { method: 'HEAD' });
-      const exists = response.ok;
+      const command = new HeadObjectCommand({
+        Bucket: this.bucket,
+        Key: filename,
+      });
 
-      console.log(`🔍 MinIO avatar ${filename}: ${exists ? 'exists' : 'not found'}`);
-
-      return exists;
+      await this.s3Client.send(command);
+      console.log(`🔍 MinIO avatar ${filename}: exists`);
+      return true;
     } catch (error) {
       console.log(`🔍 MinIO avatar ${filename}: not found`);
       return false;
@@ -240,21 +258,44 @@ export class MinioStorage {
 }
 
 /**
- * Load MinIO public URL from environment
+ * Load MinIO configuration from environment
  *
- * @throws Error if MINIO_PUBLIC_URL is not set
+ * @throws Error if required environment variables are not set
  */
-function loadPublicUrl(): string {
+function loadConfig(): MinioConfig {
+  const endpoint = process.env.MINIO_ENDPOINT;
+  const accessKey = process.env.MINIO_ACCESS_KEY;
+  const secretKey = process.env.MINIO_SECRET_KEY;
+  const bucket = process.env.MINIO_BUCKET || 'sui-patreon';
+  const region = process.env.MINIO_REGION || 'us-east-1';
+  const useSSL = process.env.MINIO_USE_SSL !== 'false';
   const publicUrl = process.env.MINIO_PUBLIC_URL;
 
-  if (!publicUrl) {
-    throw new Error(
-      'Missing MINIO_PUBLIC_URL environment variable. ' +
-      'Example: MINIO_PUBLIC_URL=https://minio.7k.ag/sui-patreon'
-    );
+  if (!endpoint) {
+    throw new Error('Missing MINIO_ENDPOINT environment variable');
   }
 
-  return publicUrl;
+  if (!accessKey) {
+    throw new Error('Missing MINIO_ACCESS_KEY environment variable');
+  }
+
+  if (!secretKey) {
+    throw new Error('Missing MINIO_SECRET_KEY environment variable');
+  }
+
+  if (!publicUrl) {
+    throw new Error('Missing MINIO_PUBLIC_URL environment variable');
+  }
+
+  return {
+    endpoint,
+    accessKey,
+    secretKey,
+    bucket,
+    region,
+    useSSL,
+    publicUrl,
+  };
 }
 
 /**
@@ -267,4 +308,4 @@ function loadPublicUrl(): string {
  * const result = await minio.uploadAvatar(buffer, 'image/jpeg');
  * ```
  */
-export const minio = new MinioStorage(loadPublicUrl());
+export const minio = new MinioStorage(loadConfig());

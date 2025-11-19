@@ -401,4 +401,71 @@ describe('Home API', () => {
     expect(data.creators).toBeDefined();
     expect(Array.isArray(data.creators)).toBe(true);
   });
+
+  it('should exclude connected user from recently-visited creators', async () => {
+    const userAddress = testCreators[0].address; // Creator 1
+    const response = await fetch(
+      `http://localhost:3001/api/home/creators?section=recently-visited&userAddress=${userAddress}`
+    );
+
+    expect(response.status).toBe(200);
+
+    const data = await response.json() as any;
+    const connectedUserInResults = data.creators.find(
+      (c: any) => c.address === userAddress
+    );
+
+    // Connected user should not appear in results
+    expect(connectedUserInResults).toBeUndefined();
+  });
+
+  it('should exclude connected user from recommended creators', async () => {
+    const userAddress = testCreators[1].address; // Creator 2 (has most content)
+    const response = await fetch(
+      `http://localhost:3001/api/home/creators?section=recommended&userAddress=${userAddress}`
+    );
+
+    expect(response.status).toBe(200);
+
+    const data = await response.json() as any;
+    const connectedUserInResults = data.creators.find(
+      (c: any) => c.address === userAddress
+    );
+
+    // Connected user should not appear in results
+    expect(connectedUserInResults).toBeUndefined();
+
+    // Should still return other creators
+    expect(data.creators.length).toBeGreaterThan(0);
+  });
+
+  it('should exclude connected user from popular creators', async () => {
+    const userAddress = testCreators[2].address; // Creator 3 (has most views)
+    const response = await fetch(
+      `http://localhost:3001/api/home/creators?section=popular&userAddress=${userAddress}`
+    );
+
+    expect(response.status).toBe(200);
+
+    const data = await response.json() as any;
+    const connectedUserInResults = data.creators.find(
+      (c: any) => c.address === userAddress
+    );
+
+    // Connected user should not appear in results
+    expect(connectedUserInResults).toBeUndefined();
+  });
+
+  it('should return all creators including self when userAddress is not provided', async () => {
+    const response = await fetch(
+      'http://localhost:3001/api/home/creators?section=popular'
+    );
+
+    expect(response.status).toBe(200);
+
+    const data = await response.json() as any;
+
+    // Should include all test creators when no userAddress is specified
+    expect(data.creators.length).toBeGreaterThanOrEqual(3);
+  });
 });

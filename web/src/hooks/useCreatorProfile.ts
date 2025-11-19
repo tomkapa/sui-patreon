@@ -21,6 +21,7 @@ export function useCreatorProfile() {
   const [profile, setProfile] = useState<CreatorProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [refetchTrigger, setRefetchTrigger] = useState(0);
 
   useEffect(() => {
     if (!account?.address) {
@@ -120,12 +121,23 @@ export function useCreatorProfile() {
     return () => {
       isCancelled = true;
     };
-  }, [account?.address, client]);
+  }, [account?.address, client, refetchTrigger]);
+
+  const refetch = () => {
+    if (!account?.address) {
+      console.log('[useCreatorProfile] Refetch called but no account address');
+      return;
+    }
+
+    console.log('[useCreatorProfile] Refetch triggered');
+    setRefetchTrigger((prev) => prev + 1);
+  };
 
   return {
     profile,
     hasProfile: !!profile,
     isLoading,
     error,
+    refetch,
   };
 }
