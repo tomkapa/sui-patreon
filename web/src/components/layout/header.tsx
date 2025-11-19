@@ -85,10 +85,6 @@ export function Header() {
               <RoleSwitcher />
 
               <LoginButton />
-              <Link href='/creator/content/new'>Create Content</Link>
-              <Button variant='outline' asChild>
-                <Link href='/creator/dashboard'>Become a Creator</Link>
-              </Button>
             </>
           )}
         </div>

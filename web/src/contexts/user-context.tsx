@@ -37,13 +37,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         setCurrentRole(savedRole);
       }
 
-      // Debug logging
-      console.log('🔍 [UserContext] useCurrentAccount() returned:', account);
-      console.log('🔍 [UserContext] account?.address:', account?.address);
-
       // Restore zkLogin session if valid
       if (account) {
-        console.log('✅ [UserContext] Setting user with address:', account.address);
         setUser({
           address: account.address,
           email: account.label,
@@ -54,7 +49,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           createdAt: new Date(),
         });
       } else {
-        console.log('⚠️ [UserContext] No account from useCurrentAccount(), clearing user');
         setUser(null);
       }
 

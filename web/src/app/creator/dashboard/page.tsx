@@ -14,6 +14,7 @@ import { Content } from '@/types';
 import { useCurrentAccount } from '@mysten/dapp-kit';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
+import { useUser } from '@/contexts/user-context';
 
 // Mock wallet address for development
 const MOCK_WALLET_ADDRESS =
@@ -37,7 +38,9 @@ function getWalrusUrl(patchId: string): string {
 }
 
 export default function CreatorDashboard() {
-  const userAddress = useCurrentAccount()?.address;
+  const { user } = useUser();
+  // Use user context address, fallback to mock for development
+  const userAddress = user?.address || MOCK_WALLET_ADDRESS;
   const [filters, setFilters] = useState<DashboardQueryParams>({
     creatorAddress: userAddress,
     type: 'all',

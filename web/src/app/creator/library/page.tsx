@@ -38,6 +38,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { useCurrentAccount } from "@mysten/dapp-kit";
+import { useUser } from "@/contexts/user-context";
 
 const getPostTypeIcon = (type: LibraryPost["postType"]) => {
   switch (type) {
@@ -70,8 +71,9 @@ const MOCK_WALLET_ADDRESS =
   "0x1abec7f223edeb5120fab9c0cc133db6167145937fd1261777e5eeab0e87f966";
 
 export default function LibraryPage() {
-  const currentAccount = useCurrentAccount();
-  const creatorAddress = currentAccount?.address || MOCK_WALLET_ADDRESS;
+  const { user } = useUser();
+  // Use user context address, fallback to mock for development
+  const creatorAddress = user?.address || MOCK_WALLET_ADDRESS;
 
   const [activeTab, setActiveTab] = useState<LibraryTab>("posts");
   const [searchQuery, setSearchQuery] = useState("");

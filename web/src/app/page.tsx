@@ -17,11 +17,6 @@ export default function HomePage() {
   const { trackCreatorVisit } = useVisitTracking();
   const { user } = useUser(); // Get actual logged-in user
 
-  // Debug: Log user info
-  useEffect(() => {
-    console.log('👤 [HomePage] User context:', user);
-  }, [user]);
-
   // State for each section
   const [recentlyVisited, setRecentlyVisited] = useState<CreatorProfile[]>([]);
   const [creatorsForYou, setCreatorsForYou] = useState<CreatorProfile[]>([]);
@@ -65,9 +60,7 @@ export default function HomePage() {
         setErrorRecommended(null);
         // Use actual logged-in user address for filtering
         const userAddress = user?.address;
-        console.log('🔍 [HomePage] Loading recommended creators, userAddress:', userAddress);
         const creators = await fetchHomeCreators("recommended", 8, userAddress);
-        console.log('📦 [HomePage] Received creators:', creators.length, creators.map(c => c.displayName));
         setCreatorsForYou(creators);
       } catch (error) {
         console.error("Failed to fetch recommended creators:", error);

@@ -9,6 +9,7 @@ import { useDecryptContent } from '@/hooks/useDecryptContent';
 import { formatNumber, formatRelativeTime } from '@/lib/utils';
 import { DecryptHelpers } from '@/lib/walrus/decrypt';
 import { useCurrentAccount } from '@mysten/dapp-kit';
+import { useUser } from '@/contexts/user-context';
 import {
   AlertCircle,
   Calendar,
@@ -159,13 +160,13 @@ function ContentCarousel({
 export default function ContentDetailPage({ params }: PageProps) {
   const { contentId } = use(params);
   const router = useRouter();
-  const currentAccount = useCurrentAccount();
-  const { data: subscriptions } = useUserSubscriptions(currentAccount?.address);
+  const { user } = useUser();
+  const { data: subscriptions } = useUserSubscriptions(user?.address);
   const {
     data: contentData,
     isLoading,
     error,
-  } = useContentDetail(contentId, currentAccount?.address);
+  } = useContentDetail(contentId, user?.address);
   const subscription = useMemo(() => {
     return subscriptions?.find(
       (s) => s.tier?.creator?.address === contentData?.creator.address
