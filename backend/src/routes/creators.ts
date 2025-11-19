@@ -350,7 +350,7 @@ router.get('/:address/profile', async (req: Request, res: Response) => {
       title: post.title,
       description: post.description,
       thumbnailUrl: post.previewPatchId
-        ? `https://aggregator.walrus-testnet.walrus.space/v1/${post.previewPatchId}`
+        ? `https://aggregator.walrus-testnet.walrus.space/v1/blobs/by-quilt-patch-id/${post.previewPatchId}`
         : undefined,
       publishedAt: post.publishedAt,
       viewCount: post.viewCount,

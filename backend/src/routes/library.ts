@@ -181,7 +181,7 @@ router.get('/:creatorAddress', async (req: Request, res: Response) => {
         : undefined,
       postType: mapContentTypeToPostType(item.contentType),
       thumbnailUrl: item.previewPatchId
-        ? `https://aggregator.walrus-testnet.walrus.space/v1/${item.previewPatchId}`
+        ? `https://aggregator.walrus-testnet.walrus.space/v1/blobs/by-quilt-patch-id/${item.previewPatchId}`
         : undefined,
       isDraft: item.isDraft,
       viewCount: item.viewCount,

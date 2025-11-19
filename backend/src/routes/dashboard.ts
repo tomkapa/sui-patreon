@@ -450,7 +450,7 @@ function mapContentTypeToMediaType(contentType: string): string {
  * Get media URLs from Walrus patch IDs
  */
 function getMediaUrls(sealedPatchId: string, previewPatchId: string | null): string[] {
-  const baseUrl = 'https://aggregator.walrus-testnet.walrus.space/v1';
+  const baseUrl = 'https://aggregator.walrus-testnet.walrus.space/v1/blobs/by-quilt-patch-id';
   const urls: string[] = [];
 
   if (previewPatchId) {
