@@ -27,9 +27,34 @@ export const CONFIG = {
 
 // Server-only exports - only initialize on server-side
 let keypair: Ed25519Keypair | undefined;
-let suiClient: SuiClient | undefined;
-let walrusClient: WalrusClient | undefined;
-let sealClient: SealClient | undefined;
+const suiClient = new SuiClient({
+  url: getFullnodeUrl('testnet'),
+});
+
+const walrusClient = new WalrusClient({
+  network: 'testnet',
+  suiClient,
+  uploadRelay: {
+    host: 'https://upload-relay.testnet.walrus.space',
+    sendTip: {
+      max: 1_000,
+    },
+  },
+});
+
+const sealObjectIds = [
+  '0x73d05d62c18d9374e3ea529e8e0ed6161da1a141a94d3f76ae3fe4e99356db75',
+  '0xf5d14a81a982144ae441cd7d64b09027f116a468bd36e7eca494f750591623c8',
+];
+
+const sealClient = new SealClient({
+  suiClient,
+  serverConfigs: sealObjectIds.map((id) => ({
+    objectId: id,
+    weight: 1,
+  })),
+  verifyKeyServers: false,
+});
 let sessionKey: SessionKey | undefined;
 
 // Initialize server-only code only on server-side
@@ -37,35 +62,6 @@ if (typeof window === 'undefined') {
   keypair = Ed25519Keypair.fromSecretKey(
     process.env.PRIVATE_KEY as string
   );
-
-  suiClient = new SuiClient({
-    url: getFullnodeUrl('testnet'),
-  });
-
-  walrusClient = new WalrusClient({
-    network: 'testnet',
-    suiClient,
-    uploadRelay: {
-      host: 'https://upload-relay.testnet.walrus.space',
-      sendTip: {
-        max: 1_000,
-      },
-    },
-  });
-
-  const sealObjectIds = [
-    '0x73d05d62c18d9374e3ea529e8e0ed6161da1a141a94d3f76ae3fe4e99356db75',
-    '0xf5d14a81a982144ae441cd7d64b09027f116a468bd36e7eca494f750591623c8',
-  ];
-
-  sealClient = new SealClient({
-    suiClient,
-    serverConfigs: sealObjectIds.map((id) => ({
-      objectId: id,
-      weight: 1,
-    })),
-    verifyKeyServers: false,
-  });
 
   // Initialize session key asynchronously
   (async () => {

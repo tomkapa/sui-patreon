@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import { AudienceAccess, SubscriptionTier } from "@/types";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
-import { cn } from "@/lib/utils";
+import { Label } from '@/components/ui/label';
+import { RadioGroupItem } from '@/components/ui/radio-group';
+import { cn } from '@/lib/utils';
+import { AudienceAccess, SubscriptionTier } from '@/types';
 
 interface AudienceSelectorProps {
   access: AudienceAccess;
@@ -29,27 +29,27 @@ export function AudienceSelector({
   };
 
   return (
-    <div className="space-y-4">
-      <div className="space-y-3">
+    <div className='space-y-4'>
+      <div className='space-y-3'>
         {/* Free access option */}
         <div
           className={cn(
-            "flex items-start gap-3 rounded-lg border p-4 transition-colors cursor-pointer",
-            access === "free"
-              ? "border-primary bg-primary/5"
-              : "border-border hover:border-muted-foreground/50"
+            'flex items-start gap-3 rounded-lg border p-4 transition-colors cursor-pointer',
+            access === 'free'
+              ? 'border-primary bg-primary/5'
+              : 'border-border hover:border-muted-foreground/50'
           )}
-          onClick={() => onAccessChange("free")}
+          onClick={() => onAccessChange('free')}
         >
-          <RadioGroupItem value="free" id="free-access" className="mt-0.5" />
-          <div className="flex-1">
+          <RadioGroupItem value='free' id='free-access' className='mt-0.5' />
+          <div className='flex-1'>
             <Label
-              htmlFor="free-access"
-              className="cursor-pointer text-base font-medium"
+              htmlFor='free-access'
+              className='cursor-pointer text-base font-medium'
             >
               Free access
             </Label>
-            <p className="mt-1 text-sm text-muted-foreground">
+            <p className='mt-1 text-sm text-muted-foreground'>
               Let everyone access this post and discover your work
             </p>
           </div>
@@ -58,52 +58,50 @@ export function AudienceSelector({
         {/* Paid access option */}
         <div
           className={cn(
-            "rounded-lg border transition-colors",
-            access === "paid"
-              ? "border-primary bg-primary/5"
-              : "border-border"
+            'rounded-lg border transition-colors',
+            access === 'paid' ? 'border-primary bg-primary/5' : 'border-border'
           )}
         >
           <div
-            className="flex items-start gap-3 p-4 cursor-pointer"
-            onClick={() => onAccessChange("paid")}
+            className='flex items-start gap-3 p-4 cursor-pointer'
+            onClick={() => onAccessChange('paid')}
           >
-            <RadioGroupItem value="paid" id="paid-access" className="mt-0.5" />
-            <div className="flex-1">
+            <RadioGroupItem value='paid' id='paid-access' className='mt-0.5' />
+            <div className='flex-1'>
               <Label
-                htmlFor="paid-access"
-                className="cursor-pointer text-base font-medium"
+                htmlFor='paid-access'
+                className='cursor-pointer text-base font-medium'
               >
                 Paid access
               </Label>
-              <p className="mt-1 text-sm text-muted-foreground">
+              <p className='mt-1 text-sm text-muted-foreground'>
                 Limit access to paid members and people who purchased this post
               </p>
             </div>
           </div>
 
           {/* Tier selection (only shown when paid is selected) */}
-          {access === "paid" && (
-            <div className="border-t border-border px-4 pb-4 pt-3">
-              <p className="mb-3 text-sm font-medium">Select tiers:</p>
-              <div className="space-y-2">
+          {access === 'paid' && (
+            <div className='border-t border-border px-4 pb-4 pt-3'>
+              <p className='mb-3 text-sm font-medium'>Select tiers:</p>
+              <div className='space-y-2'>
                 {availableTiers.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
+                  <p className='text-sm text-muted-foreground'>
                     No tiers available. Create tiers in your settings.
                   </p>
                 ) : (
                   availableTiers.map((tier) => (
                     <label
                       key={tier.id}
-                      className="flex items-center gap-2 cursor-pointer"
+                      className='flex items-center gap-2 cursor-pointer'
                     >
                       <input
-                        type="checkbox"
-                        checked={selectedTiers.includes(tier.id)}
-                        onChange={() => toggleTier(tier.id)}
-                        className="h-4 w-4 rounded border-gray-300"
+                        type='checkbox'
+                        checked={selectedTiers.includes(tier.tierId)}
+                        onChange={() => toggleTier(tier.tierId)}
+                        className='h-4 w-4 rounded border-gray-300'
                       />
-                      <span className="text-sm">
+                      <span className='text-sm'>
                         {tier.name} - ${tier.price}/mo
                       </span>
                     </label>

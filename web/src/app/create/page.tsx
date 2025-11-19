@@ -5,15 +5,16 @@ import { SettingsSidebar } from '@/components/content/settings-sidebar';
 import { AdaptiveLayout } from '@/components/layout/adaptive-layout';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { useCreatorProfile } from '@/hooks/api/useCreatorQueries';
 import { walrusClient } from '@/lib/config';
-import { mockTiers } from '@/lib/mock-data';
+import { patreon } from '@/lib/patreon';
 import { validateCreatePost, ValidationError } from '@/lib/validation';
 import { CreatePostFormData, MediaType } from '@/types';
 import {
   useCurrentAccount,
   useSignAndExecuteTransaction,
 } from '@mysten/dapp-kit';
-import { WalrusFile, WriteFilesFlow } from '@mysten/walrus';
+import { WalrusFile } from '@mysten/walrus';
 import { FileText } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -39,12 +40,13 @@ export default function CreatePage() {
   const [formData, setFormData] = useState<CreatePostFormData>(defaultFormData);
   const [isPublishing, setIsPublishing] = useState(false);
   const userAddress = useCurrentAccount()?.address;
-  const [flow, setFlow] = useState<WriteFilesFlow | null>(null);
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>(
     []
   );
   const { mutateAsync: signAndExecuteTransaction } =
     useSignAndExecuteTransaction();
+
+  const { data: creatorProfile } = useCreatorProfile(userAddress);
 
   const handleFormChange = (updates: Partial<CreatePostFormData>) => {
     setFormData((prev) => ({ ...prev, ...updates }));
@@ -113,9 +115,20 @@ export default function CreatePage() {
       await signAndExecuteTransaction({ transaction: certifyTx });
       const files = await flow.listFiles();
       console.log('Uploaded files:', files);
-
+      const createTx = patreon.createContent(
+        Date.now(),
+        formData.title,
+        formData.content,
+        formData.mediaType!,
+        files[0].blobId,
+        files[1].blobId,
+        formData.tierIds
+      );
+      await signAndExecuteTransaction({ transaction: createTx });
       // Success - redirect to creator dashboard or post page
-      router.push('/creator/dashboard');
+      setTimeout(() => {
+        router.push('/creator/dashboard');
+      }, 1000);
     } catch (error) {
       console.error('Error publishing post:', error);
       alert('Failed to publish post. Please try again.');
@@ -124,6 +137,14 @@ export default function CreatePage() {
     }
   };
 
+  // const createProfile = async () => {
+  //   const tx = patreon.createProfile('Otis', "I'm a developer", '');
+  //   await signAndExecuteTransaction({ transaction: tx });
+  // };
+  // const createTier = async () => {
+  //   const tx = patreon.createTier('Premium', 'Access to premium content', 1000);
+  //   await signAndExecuteTransaction({ transaction: tx });
+  // }
   return (
     <AdaptiveLayout>
       <div className='flex min-h-screen'>
@@ -131,6 +152,8 @@ export default function CreatePage() {
         <main className='flex-1 p-8'>
           <div className='mx-auto max-w-4xl space-y-6'>
             {/* Media Type Buttons */}
+            {/* <button onClick={createProfile}>Create Profile</button>
+            <button onClick={createTier}>Create Tier</button> */}
             <MediaTypeSelector
               selectedType={formData.mediaType}
               onTypeSelect={handleMediaTypeSelect}
@@ -204,7 +227,7 @@ export default function CreatePage() {
         <SettingsSidebar
           formData={formData}
           onFormChange={handleFormChange}
-          availableTiers={mockTiers}
+          availableTiers={creatorProfile?.tiers ?? []}
           onPreview={handlePreview}
           onPublish={handlePublish}
           isPublishing={isPublishing}
