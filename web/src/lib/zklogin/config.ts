@@ -28,7 +28,7 @@ export const ZKLOGIN_CONFIG = {
 
   // zkLogin Proving Service
   prover: {
-    url: 'https://prover-dev.mystenlabs.com/v1',
+    url: 'https://api.enoki.mystenlabs.com/v1/zklogin/zkp',
   },
 
   // Salt Service (you'll need to implement your own backend for production)

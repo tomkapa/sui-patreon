@@ -15,68 +15,68 @@ export default function AuthCallbackPage() {
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
   const [error, setError] = useState<string>("");
 
-  useEffect(() => {
-    // Prevent duplicate execution (React Strict Mode calls effects twice)
-    let isCancelled = false;
+  // useEffect(() => {
+  //   // Prevent duplicate execution (React Strict Mode calls effects twice)
+  //   let isCancelled = false;
 
-    async function handleCallback() {
-      try {
-        // Extract JWT from URL hash (Google returns id_token in hash)
-        const hash = window.location.hash;
-        const params = new URLSearchParams(hash.substring(1));
-        const jwt = params.get("id_token");
+  //   async function handleCallback() {
+  //     try {
+  //       // Extract JWT from URL hash (Google returns id_token in hash)
+  //       const hash = window.location.hash;
+  //       const params = new URLSearchParams(hash.substring(1));
+  //       const jwt = params.get("id_token");
 
-        if (!jwt) {
-          throw new Error("No JWT token found in callback URL");
-        }
+  //       if (!jwt) {
+  //         throw new Error("No JWT token found in callback URL");
+  //       }
 
-        // Prevent duplicate processing
-        if (isCancelled) {
-          console.log('Callback cancelled (duplicate call)');
-          return;
-        }
+  //       // Prevent duplicate processing
+  //       if (isCancelled) {
+  //         console.log('Callback cancelled (duplicate call)');
+  //         return;
+  //       }
 
-        setStatus("loading");
+  //       setStatus("loading");
 
-        // Complete zkLogin flow
-        const { address, decodedJwt } = await completeZkLogin(jwt);
+  //       // Complete zkLogin flow
+  //       const { address, decodedJwt } = await completeZkLogin(jwt);
 
-        // Update user context with zkLogin data
-        setUser({
-          address,
-          suinsName: null, // Will be fetched separately if exists
-          displayName: decodedJwt.name || "Anonymous",
-          avatarUrl: decodedJwt.picture || "",
-          email: decodedJwt.email,
-          subscriptions: [],
-          createdAt: new Date(),
-        });
+  //       // Update user context with zkLogin data
+  //       setUser({
+  //         address,
+  //         suinsName: null, // Will be fetched separately if exists
+  //         displayName: decodedJwt.name || "Anonymous",
+  //         avatarUrl: decodedJwt.picture || "",
+  //         email: decodedJwt.email,
+  //         subscriptions: [],
+  //         createdAt: new Date(),
+  //       });
 
-        setStatus("success");
+  //       setStatus("success");
 
-        // Redirect to home page after successful login
-        setTimeout(() => {
-          router.push("/");
-        }, 1500);
-      } catch (err) {
-        console.error("Callback error:", err);
-        setError(err instanceof Error ? err.message : "Unknown error occurred");
-        setStatus("error");
+  //       // Redirect to home page after successful login
+  //       setTimeout(() => {
+  //         router.push("/");
+  //       }, 1500);
+  //     } catch (err) {
+  //       console.error("Callback error:", err);
+  //       setError(err instanceof Error ? err.message : "Unknown error occurred");
+  //       setStatus("error");
 
-        // Redirect back to home after error
-        setTimeout(() => {
-          router.push("/");
-        }, 3000);
-      }
-    }
+  //       // Redirect back to home after error
+  //       setTimeout(() => {
+  //         router.push("/");
+  //       }, 3000);
+  //     }
+  //   }
 
-    handleCallback();
+  //   handleCallback();
 
-    // Cleanup function to prevent duplicate execution
-    return () => {
-      isCancelled = true;
-    };
-  }, [router, setUser]);
+  //   // Cleanup function to prevent duplicate execution
+  //   return () => {
+  //     isCancelled = true;
+  //   };
+  // }, [router, setUser]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">

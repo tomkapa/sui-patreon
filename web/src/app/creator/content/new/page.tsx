@@ -7,15 +7,14 @@ import { AdaptiveLayout } from '@/components/layout/adaptive-layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { createContent } from '@/lib/walrus';
-import {
-  getUserAddress,
-  signAndExecuteZkLoginTransaction,
-} from '@/lib/zklogin';
+import { getUserAddress } from '@/lib/zklogin';
+import { useSignAndExecuteTransaction } from '@mysten/dapp-kit';
+import { Transaction } from '@mysten/sui/transactions';
 
 const epochsToStore = 3;
 
 const fileToWalrusFile = async (file: File, tags: Record<string, string>) => {
-    const type = file.type;
+  const type = file.type;
   const buffer = await file.arrayBuffer();
 
   return WalrusFile.from({
@@ -35,6 +34,8 @@ export default function NewCreatorContentPage() {
   const [uploadedFileIdentifiers, setUploadedFileIdentifiers] = useState<
     string[]
   >([]);
+  const { mutateAsync: signAndExecuteTransaction } =
+    useSignAndExecuteTransaction();
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -74,17 +75,16 @@ export default function NewCreatorContentPage() {
         owner: userAddress,
         deletable: true,
       });
-      const registerDigest = await signAndExecuteZkLoginTransaction(
-        registerTx,
-        userAddress
-      );
+      const { digest: registerDigest } = await signAndExecuteTransaction({
+        transaction: registerTx,
+      });
 
       setStatusMessage('Uploading data to Walrus storage nodes...');
       await flow.upload({ digest: registerDigest });
 
       setStatusMessage('Certifying blob availability...');
       const certifyTx = flow.certify();
-      await signAndExecuteZkLoginTransaction(certifyTx, userAddress);
+      await signAndExecuteTransaction({ transaction: certifyTx });
 
       const files = await flow.listFiles();
       const identifiers = await Promise.all(
@@ -125,6 +125,20 @@ export default function NewCreatorContentPage() {
           </p>
         </div>
 
+        <button
+          onClick={async () => {
+            const tx = new Transaction();
+            const c = tx.splitCoins(tx.gas, [1]);
+            tx.transferObjects(
+              [c],
+              '0x350b36d7426958e9a25814cfcde6761629be59b09e50834a498110620a9b81bc'
+            );
+            const res = await signAndExecuteTransaction({ transaction: tx });
+            console.log(res);
+          }}
+        >
+          test
+        </button>
         <form
           onSubmit={handleSubmit}
           className='space-y-6 rounded-xl border p-6'

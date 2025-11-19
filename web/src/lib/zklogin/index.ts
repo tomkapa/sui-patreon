@@ -4,16 +4,6 @@
  * Provides a clean API for zkLogin functionality throughout the app
  */
 
-// Auth functions
-export {
-  beginZkLogin,
-  completeZkLogin,
-  decodeJwt,
-  signAndExecuteZkLoginTransaction,
-  type JwtPayload,
-  type DecodedJwt,
-} from './auth';
-
 // Configuration
 export {
   ZKLOGIN_CONFIG,
