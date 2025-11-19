@@ -3,8 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
-import { Sidebar } from "@/components/layout/sidebar";
-import { Header } from "@/components/layout/header";
+import { AdaptiveLayout } from "@/components/layout/adaptive-layout";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { NotificationItem } from "@/components/notifications/notification-item";
@@ -94,13 +93,8 @@ export default function NotificationsPage() {
   const hasUnread = unreadCount > 0;
 
   return (
-    <div className="flex min-h-screen">
-      <Sidebar />
-
-      <div className="flex-1 pl-64">
-        <Header />
-
-        <main className="p-6">
+    <AdaptiveLayout>
+      <main className="p-6">
           <div className="container max-w-4xl mx-auto">
             {/* Header */}
             <div className="mb-8 flex items-center justify-between">
@@ -195,8 +189,7 @@ export default function NotificationsPage() {
               </TabsContent>
             </Tabs>
           </div>
-        </main>
-      </div>
-    </div>
+      </main>
+    </AdaptiveLayout>
   );
 }

@@ -1,7 +1,6 @@
 'use client';
 
-import { Sidebar } from "@/components/layout/sidebar";
-import { Header } from "@/components/layout/header";
+import { AdaptiveLayout } from "@/components/layout/adaptive-layout";
 import { useState } from "react";
 import { isValidSuiObjectId } from "@mysten/sui/utils";
 import { MessagingStatus } from "@/components/messaging/MessagingStatus";
@@ -9,6 +8,7 @@ import { CreateChannel } from "@/components/messaging/CreateChannel";
 import { ChannelList } from "@/components/messaging/ChannelList";
 import { Channel } from "@/components/messaging/Channel";
 import { useCurrentAccount } from "@mysten/dapp-kit";
+import { MessageSquare } from "lucide-react";
 
 export default function ChatsPage() {
   const currentAccount = useCurrentAccount();
@@ -25,13 +25,8 @@ export default function ChatsPage() {
   };
 
   return (
-    <div className="flex min-h-screen">
-      <Sidebar />
-
-      <div className="flex-1 pl-64">
-        <Header />
-
-        <main className="p-6">
+    <AdaptiveLayout>
+      <main className="p-6 max-w-7xl mx-auto">
           {currentAccount ? (
             channelId ? (
               <Channel
@@ -39,24 +34,40 @@ export default function ChatsPage() {
                 onBack={handleBack}
               />
             ) : (
-              <div className="flex flex-col gap-4">
-                <MessagingStatus />
-                <CreateChannel />
-                <ChannelList onChannelSelect={handleChannelSelect} />
+              <div className="space-y-6">
+                <div>
+                  <h1 className="text-3xl font-bold tracking-tight mb-2">Messages</h1>
+                  <p className="text-muted-foreground">
+                    Secure, encrypted messaging powered by Sui and Seal
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="space-y-6">
+                    <MessagingStatus />
+                    <CreateChannel />
+                  </div>
+
+                  <div>
+                    <ChannelList onChannelSelect={handleChannelSelect} />
+                  </div>
+                </div>
               </div>
             )
           ) : (
             <div className="flex h-[calc(100vh-8rem)] items-center justify-center">
-              <div className="text-center">
-                <h2 className="mb-2 text-2xl font-semibold">Please connect your wallet</h2>
-                <p className="text-muted-foreground">
-                  Connect your wallet to start using the messaging features
+              <div className="text-center max-w-md">
+                <div className="mx-auto mb-6 h-20 w-20 rounded-full bg-muted/50 flex items-center justify-center">
+                  <MessageSquare className="h-10 w-10 text-muted-foreground" />
+                </div>
+                <h2 className="mb-3 text-3xl font-bold tracking-tight">Connect Your Wallet</h2>
+                <p className="text-muted-foreground text-lg">
+                  Connect your wallet to start using secure, encrypted messaging on Sui blockchain
                 </p>
               </div>
             </div>
           )}
-        </main>
-      </div>
-    </div>
+      </main>
+    </AdaptiveLayout>
   );
 }

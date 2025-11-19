@@ -1,16 +1,10 @@
-import { Sidebar } from "@/components/layout/sidebar";
-import { Header } from "@/components/layout/header";
+import { AdaptiveLayout } from "@/components/layout/adaptive-layout";
 import { Settings } from "lucide-react";
 
 export default function SettingsPage() {
   return (
-    <div className="flex min-h-screen">
-      <Sidebar />
-
-      <div className="flex-1 pl-64">
-        <Header />
-
-        <main className="p-6">
+    <AdaptiveLayout>
+      <main className="p-6">
           <div className="mx-auto max-w-3xl">
             <h1 className="mb-6 text-3xl font-bold">Settings</h1>
 
@@ -60,8 +54,7 @@ export default function SettingsPage() {
               </section>
             </div>
           </div>
-        </main>
-      </div>
-    </div>
+      </main>
+    </AdaptiveLayout>
   );
 }

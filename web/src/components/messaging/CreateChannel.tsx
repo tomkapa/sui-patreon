@@ -49,57 +49,70 @@ export function CreateChannel() {
   };
 
   return (
-    <div className="rounded-lg border bg-card p-4">
+    <div className="rounded-xl border bg-gradient-to-br from-card to-card/50 p-6 shadow-sm">
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div>
-          <h3 className="text-lg font-semibold">Create New Channel</h3>
-        </div>
-
-        <div className="border-t" />
-
-        <div>
-          <p className="text-sm text-muted-foreground">
-            Enter one or more Sui addresses separated by commas to create a private messaging channel.
+          <h3 className="text-xl font-bold tracking-tight">Create New Channel</h3>
+          <p className="text-sm text-muted-foreground mt-1">
+            Start a private encrypted conversation
           </p>
         </div>
 
-        <Input
-          placeholder="Enter Sui address"
-          value={recipientAddress}
-          onChange={(e) => {
-            setRecipientAddress(e.target.value);
-            setValidationError(null);
-          }}
-          disabled={!isReady || isCreatingChannel}
-        />
+        <div className="space-y-3">
+          <div>
+            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider block mb-2">
+              Recipient Address
+            </label>
+            <Input
+              placeholder="0x..."
+              value={recipientAddress}
+              onChange={(e) => {
+                setRecipientAddress(e.target.value);
+                setValidationError(null);
+              }}
+              disabled={!isReady || isCreatingChannel}
+              className="h-11"
+            />
+            <p className="text-xs text-muted-foreground mt-1.5">
+              Enter a Sui address to create a private messaging channel
+            </p>
+          </div>
 
-        {validationError && (
-          <p className="text-sm text-red-500">
-            {validationError}
-          </p>
-        )}
+          {validationError && (
+            <div className="rounded-lg bg-red-500/5 border border-red-500/20 p-3">
+              <p className="text-sm font-medium text-red-600">
+                {validationError}
+              </p>
+            </div>
+          )}
 
-        {channelError && (
-          <p className="text-sm text-red-500">
-            Error: {channelError}
-          </p>
-        )}
+          {channelError && (
+            <div className="rounded-lg bg-red-500/5 border border-red-500/20 p-3">
+              <p className="text-sm font-medium text-red-600">
+                Error: {channelError}
+              </p>
+            </div>
+          )}
 
-        {successMessage && (
-          <p className="text-sm text-green-500">
-            {successMessage}
-          </p>
-        )}
+          {successMessage && (
+            <div className="rounded-lg bg-green-500/5 border border-green-500/20 p-3">
+              <p className="text-sm font-medium text-green-600">
+                {successMessage}
+              </p>
+            </div>
+          )}
+        </div>
 
         <Button
           type="submit"
           disabled={!isReady || isCreatingChannel}
+          className="w-full h-11"
         >
           {isCreatingChannel ? 'Creating Channel...' : 'Create Channel'}
         </Button>
 
         {!isReady && (
-          <p className="text-sm text-muted-foreground">
+          <p className="text-xs text-center text-muted-foreground">
             Waiting for messaging client to initialize...
           </p>
         )}
