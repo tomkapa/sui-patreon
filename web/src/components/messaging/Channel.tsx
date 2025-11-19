@@ -81,12 +81,12 @@ export function Channel({ channelId, onBack }: ChannelProps) {
       }
     });
 
-    // Auto-refresh messages every 60 seconds
+    // Auto-refresh messages every 5 seconds
     const interval = setInterval(() => {
       if (isMounted && !checkSessionExpiration()) {
         fetchLatestMessages(channelId);
       }
-    }, 60000);
+    }, 5000);
 
     return () => {
       isMounted = false;

@@ -17,13 +17,13 @@ export function ChannelList({ onChannelSelect }: ChannelListProps) {
     console.log('Channels updated:', channels);
   }, [channels]);
 
-  // Auto-refresh channels every 60 seconds when component is mounted
+  // Auto-refresh channels every 5 seconds when component is mounted
   useEffect(() => {
     if (!isReady) return;
 
     const interval = setInterval(() => {
       fetchChannels();
-    }, 60000); // 60 seconds
+    }, 5000); // 5 seconds
 
     return () => clearInterval(interval);
   }, [isReady, fetchChannels]);
