@@ -40,14 +40,14 @@ export function Header() {
 
   // Fetch unread count on mount and poll every 30 seconds
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (!isAuthenticated || !user?.address) {
       setUnreadCount(0);
       return;
     }
 
     const loadUnreadCount = async () => {
       try {
-        const count = await fetchUnreadCount();
+        const count = await fetchUnreadCount(user.address);
         setUnreadCount(count);
       } catch (error) {
         console.error('Failed to fetch unread count:', error);
@@ -58,7 +58,7 @@ export function Header() {
     const interval = setInterval(loadUnreadCount, 30000); // Poll every 30s
 
     return () => clearInterval(interval);
-  }, [isAuthenticated]);
+  }, [isAuthenticated, user?.address]);
 
   const handleCopyAddress = () => {
     if (user?.address) {

@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Avatar Upload Example</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            padding: 2rem;
+            max-width: 600px;
+            margin: 0 auto;
+            background: #f5f5f5;
+        }
+
+        .container {
+            background: white;
+            border-radius: 8px;
+            padding: 2rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 1.5rem;
+            font-size: 1.75rem;
+        }
+
+        .upload-section {
+            margin-bottom: 2rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #555;
+            font-weight: 500;
+        }
+
+        input[type="file"] {
+            display: block;
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px dashed #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: border-color 0.3s;
+        }
+
+        input[type="file"]:hover {
+            border-color: #999;
+        }
+
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: background 0.3s;
+            margin-top: 1rem;
+        }
+
+        button:hover:not(:disabled) {
+            background: #0056b3;
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .preview-section {
+            margin-top: 2rem;
+        }
+
+        .avatar-preview {
+            max-width: 200px;
+            max-height: 200px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            margin-top: 1rem;
+        }
+
+        .message {
+            padding: 1rem;
+            border-radius: 4px;
+            margin-top: 1rem;
+        }
+
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .loading {
+            display: inline-block;
+            margin-left: 0.5rem;
+        }
+
+        .loading::after {
+            content: '';
+            display: inline-block;
+            width: 1rem;
+            height: 1rem;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 0.6s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .info-box {
+            background: #e7f3ff;
+            border-left: 4px solid #007bff;
+            padding: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .info-box p {
+            color: #004085;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        code {
+            background: #f4f4f4;
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🖼️ Avatar Upload Example</h1>
+
+        <div class="info-box">
+            <p>
+                <strong>Accepted formats:</strong> JPEG, JPG, PNG<br>
+                <strong>Maximum size:</strong> 10MB<br>
+                <strong>Backend API:</strong> <code>http://localhost:3001/api/avatar</code>
+            </p>
+        </div>
+
+        <div class="upload-section">
+            <label for="avatar-input">Select an avatar image:</label>
+            <input type="file" id="avatar-input" accept="image/jpeg,image/jpg,image/png">
+            <button id="upload-btn" disabled>Upload Avatar</button>
+        </div>
+
+        <div id="message-container"></div>
+
+        <div class="preview-section" id="preview-section" style="display: none;">
+            <h2>Preview</h2>
+            <img id="avatar-preview" class="avatar-preview" alt="Avatar preview">
+            <div id="avatar-info" style="margin-top: 1rem; color: #555;"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:3001/api/avatar';
+        const fileInput = document.getElementById('avatar-input');
+        const uploadBtn = document.getElementById('upload-btn');
+        const messageContainer = document.getElementById('message-container');
+        const previewSection = document.getElementById('preview-section');
+        const avatarPreview = document.getElementById('avatar-preview');
+        const avatarInfo = document.getElementById('avatar-info');
+
+        let selectedFile = null;
+
+        // Enable upload button when file is selected
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files?.[0];
+
+            if (!file) {
+                uploadBtn.disabled = true;
+                selectedFile = null;
+                return;
+            }
+
+            // Validate file type
+            const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+            if (!allowedTypes.includes(file.type)) {
+                showMessage('Please select a JPEG or PNG image', 'error');
+                uploadBtn.disabled = true;
+                return;
+            }
+
+            // Validate file size (10MB limit)
+            const maxSize = 10 * 1024 * 1024;
+            if (file.size > maxSize) {
+                showMessage('File size must be less than 10MB', 'error');
+                uploadBtn.disabled = true;
+                return;
+            }
+
+            selectedFile = file;
+            uploadBtn.disabled = false;
+            clearMessage();
+        });
+
+        // Handle upload
+        uploadBtn.addEventListener('click', async () => {
+            if (!selectedFile) return;
+
+            uploadBtn.disabled = true;
+            uploadBtn.innerHTML = 'Uploading<span class="loading"></span>';
+            clearMessage();
+            previewSection.style.display = 'none';
+
+            try {
+                // Convert file to base64
+                const base64 = await fileToBase64(selectedFile);
+
+                // Upload to backend
+                const response = await fetch(`${API_BASE_URL}/upload`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        file: base64,
+                        contentType: selectedFile.type,
+                    }),
+                });
+
+                const data = await response.json();
+
+                if (!response.ok || !data.success) {
+                    throw new Error(data.error || 'Upload failed');
+                }
+
+                // Show success message
+                showMessage(`✅ Avatar uploaded successfully!`, 'success');
+
+                // Display preview
+                avatarPreview.src = data.url;
+                previewSection.style.display = 'block';
+
+                // Display info
+                const sizeKB = (data.size / 1024).toFixed(2);
+                avatarInfo.innerHTML = `
+                    <strong>Filename:</strong> <code>${data.filename}</code><br>
+                    <strong>Size:</strong> ${sizeKB} KB<br>
+                    <strong>Type:</strong> ${data.contentType}<br>
+                    <strong>URL:</strong> <a href="${data.url}" target="_blank">${data.url}</a>
+                `;
+
+            } catch (error) {
+                showMessage(`❌ Upload failed: ${error.message}`, 'error');
+            } finally {
+                uploadBtn.disabled = false;
+                uploadBtn.textContent = 'Upload Avatar';
+            }
+        });
+
+        // Helper: Convert file to base64
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+
+                reader.onload = () => {
+                    const base64String = reader.result;
+                    // Remove data URL prefix (e.g., "data:image/png;base64,")
+                    const base64Data = base64String.split(',')[1];
+                    resolve(base64Data);
+                };
+
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // Helper: Show message
+        function showMessage(text, type) {
+            messageContainer.innerHTML = `<div class="message ${type}">${text}</div>`;
+        }
+
+        // Helper: Clear message
+        function clearMessage() {
+            messageContainer.innerHTML = '';
+        }
+    </script>
+</body>
+</html>

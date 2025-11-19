@@ -18,6 +18,7 @@ import visitsRouter from './routes/visits';
 import exploreRouter from './routes/explore';
 import dashboardRouter from './routes/dashboard';
 import notificationsRouter from './routes/notifications';
+import avatarRouter from './routes/avatar';
 
 // Load environment variables
 dotenv.config();
@@ -73,6 +74,7 @@ app.use('/api/visits', visitsRouter);
 app.use('/api/explore', exploreRouter);
 app.use('/api/dashboard', dashboardRouter);
 app.use('/api/notifications', notificationsRouter);
+app.use('/api/avatar', avatarRouter); // Avatar upload/download routes
 app.use('/api', uploadRouter); // Upload/download routes
 
 // Global error handler middleware

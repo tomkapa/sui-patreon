@@ -148,6 +148,7 @@ function mapToCreatorProfile(
       "api.dicebear.com",
       "images.unsplash.com",
       "avatars.githubusercontent.com",
+      "minio.7k.ag",
     ];
 
     try {

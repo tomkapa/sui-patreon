@@ -443,6 +443,239 @@ function computeContentId(nonce: number, address: string): string {
 }
 ```
 
+## React Integration Patterns
+
+### Centralized Transaction Handler
+
+Create a reusable hook for all transactions with automatic toast notifications:
+
+```typescript
+// lib/sui/transactions.ts
+import { useSignAndExecuteTransaction, useSuiClient } from '@mysten/dapp-kit';
+import { Transaction } from '@mysten/sui/transactions';
+import { toast } from 'sonner';
+import { useState } from 'react';
+
+export interface TransactionOptions {
+  successMessage?: string;
+  errorMessage?: string;
+}
+
+export function useTransaction() {
+  const { mutateAsync: signAndExecuteTransaction } = useSignAndExecuteTransaction();
+  const client = useSuiClient();
+  const [isLoading, setIsLoading] = useState(false);
+
+  const execute = async (
+    buildTx: (tx: Transaction) => void | Promise<void>,
+    options: TransactionOptions = {}
+  ) => {
+    setIsLoading(true);
+
+    try {
+      // Build transaction
+      const tx = new Transaction();
+      await buildTx(tx);
+
+      // Execute transaction
+      const result = await signAndExecuteTransaction({
+        transaction: tx,
+      });
+
+      // Show info toast with transaction hash
+      toast.info('Transaction sent', {
+        description: (
+          <a
+            href={`https://suiscan.xyz/testnet/tx/${result.digest}`}
+            target="_blank"
+            className="underline"
+          >
+            View on Explorer
+          </a>
+        ),
+        duration: 3000,
+      });
+
+      // Wait for transaction to complete
+      await client.waitForTransaction({
+        digest: result.digest,
+      });
+
+      // Show success toast
+      toast.success(options.successMessage || 'Transaction successful!', {
+        duration: 5000,
+      });
+
+      return result;
+    } catch (error: any) {
+      // Show error toast
+      toast.error(options.errorMessage || 'Transaction failed', {
+        description: error.message || 'Unknown error occurred',
+        duration: 7000,
+      });
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return { execute, isLoading };
+}
+```
+
+### Usage in Components
+
+```typescript
+import { useTransaction } from '@/lib/sui/transactions';
+import { PACKAGE_ID, TIER_REGISTRY } from '@/lib/sui/constants';
+
+function SubscribeButton({ tierId, price }: Props) {
+  const { execute, isLoading } = useTransaction();
+
+  const handleSubscribe = async () => {
+    await execute(
+      async (tx) => {
+        // Your transaction building logic
+        tx.moveCall({
+          target: `${PACKAGE_ID}::subscription::purchase_subscription`,
+          arguments: [
+            tx.object(TIER_REGISTRY),
+            tx.pure.id(tierId),
+            // ...
+          ],
+        });
+      },
+      {
+        successMessage: 'Successfully subscribed!',
+        errorMessage: 'Failed to purchase subscription',
+      }
+    );
+  };
+
+  return (
+    <Button onClick={handleSubscribe} disabled={isLoading}>
+      {isLoading ? 'Processing...' : 'Subscribe'}
+    </Button>
+  );
+}
+```
+
+### Coin Selection and Merging
+
+Handle USDC coin selection automatically:
+
+```typescript
+// lib/sui/coins.ts
+export async function selectPaymentCoin(
+  tx: Transaction,
+  client: SuiClient,
+  owner: string,
+  amount: bigint
+): Promise<string> {
+  const coins = await client.getCoins({
+    owner,
+    coinType: USDC_TYPE,
+  });
+
+  if (coins.data.length === 0) {
+    throw new Error('No USDC coins found in wallet');
+  }
+
+  const totalBalance = coins.data.reduce(
+    (sum, coin) => sum + BigInt(coin.balance),
+    0n
+  );
+
+  if (totalBalance < amount) {
+    throw new Error(`Insufficient USDC balance`);
+  }
+
+  // Find single coin with sufficient balance
+  const sufficientCoin = coins.data.find(
+    (coin) => BigInt(coin.balance) >= amount
+  );
+
+  if (sufficientCoin) {
+    return sufficientCoin.coinObjectId;
+  }
+
+  // Merge coins if needed
+  const sortedCoins = [...coins.data].sort((a, b) =>
+    BigInt(b.balance) > BigInt(a.balance) ? 1 : -1
+  );
+
+  const primaryCoin = sortedCoins[0];
+  const coinsToMerge = sortedCoins.slice(1).map((c) => c.coinObjectId);
+
+  tx.mergeCoins(
+    tx.object(primaryCoin.coinObjectId),
+    coinsToMerge.map((id) => tx.object(id))
+  );
+
+  return primaryCoin.coinObjectId;
+}
+```
+
+### Complete Subscription Example
+
+```typescript
+// lib/sui/subscription.ts
+import { useCallback } from 'react';
+import { useSuiClient } from '@mysten/dapp-kit';
+import { Transaction } from '@mysten/sui/transactions';
+import { useTransaction } from './transactions';
+import { selectPaymentCoin } from './coins';
+import { PACKAGE_ID, TIER_REGISTRY, SUI_CLOCK_OBJECT_ID } from './constants';
+
+export function usePurchaseSubscription() {
+  const { execute, isLoading } = useTransaction();
+  const client = useSuiClient();
+
+  const purchaseSubscription = useCallback(
+    async (params: {
+      creatorAddress: string;
+      tierId: string;
+      priceUsdc: number;
+      tierName: string;
+    }, userAddress: string) => {
+      return execute(
+        async (tx: Transaction) => {
+          // Convert to smallest unit (6 decimals for USDC)
+          const amount = BigInt(params.priceUsdc * 1_000_000);
+
+          // Select payment coin (merges if needed)
+          const paymentCoinId = await selectPaymentCoin(
+            tx,
+            client,
+            userAddress,
+            amount
+          );
+
+          // Call contract
+          tx.moveCall({
+            target: `${PACKAGE_ID}::subscription::purchase_subscription`,
+            arguments: [
+              tx.object(TIER_REGISTRY),
+              tx.pure.address(params.creatorAddress),
+              tx.pure.id(params.tierId),
+              tx.object(paymentCoinId), // Don't split - Move does it internally
+              tx.object(SUI_CLOCK_OBJECT_ID),
+            ],
+          });
+        },
+        {
+          successMessage: `Successfully subscribed to ${params.tierName}!`,
+          errorMessage: 'Failed to purchase subscription',
+        }
+      );
+    },
+    [execute, client]
+  );
+
+  return { purchaseSubscription, isLoading };
+}
+```
+
 ## Best Practices
 
 1. **Always use `SUI_CLOCK_OBJECT_ID`** for Move functions requiring `&Clock`
@@ -455,14 +688,63 @@ function computeContentId(nonce: number, address: string): string {
 8. **Walrus flows**: Use `writeFilesFlow()` for browser (wallet popup friendly)
 9. **Seal sessions**: Cache session keys (10min TTL), recreate when expired
 10. **Error handling**: Wrap all blockchain calls in try-catch blocks
+11. **Toast notifications**: Show transaction hash immediately, result after confirmation
+12. **Coin merging**: Automatically merge USDC coins when needed for payments
+13. **Centralize transactions**: Use a single hook for all transaction logic
+14. **Wait for confirmation**: Always wait for transaction before showing success
 
 ## Common Pitfalls
+
+### Type Safety Issues
 
 ❌ **Wrong**: `tx.pure(value)` - no type information
 ✅ **Correct**: `tx.pure.string(value)` - explicit type
 
 ❌ **Wrong**: Using raw bytes for object IDs
 ✅ **Correct**: `tx.pure.id(objectId)` or `tx.object(objectId)`
+
+### Coin Handling Issues
+
+❌ **Wrong**: Manually splitting coins when Move function takes `&mut Coin<T>`
+```typescript
+// DON'T DO THIS - creates unused value error
+const [paymentCoin] = tx.splitCoins(tx.object(coinId), [tx.pure.u64(amount)]);
+tx.moveCall({
+  arguments: [paymentCoin, ...], // ❌ UnusedValueWithoutDrop error
+});
+```
+
+✅ **Correct**: Pass the whole coin object when function signature is `&mut Coin<T>`
+```typescript
+// Move function splits internally
+tx.moveCall({
+  arguments: [tx.object(coinId), ...], // ✅ Correct
+});
+```
+
+**Rule of Thumb:**
+- `Coin<T>` (owned value) → Split manually with `tx.splitCoins()`
+- `&mut Coin<T>` (mutable reference) → Pass whole coin with `tx.object()`
+- `&Coin<T>` (immutable reference) → Pass whole coin with `tx.object()`
+
+### ID vs Object ID Confusion
+
+❌ **Wrong**: Using database UUIDs for blockchain calls
+```typescript
+const tier = { id: "04251dd5-...", tierId: "0x123abc..." };
+tx.pure.id(tier.id); // ❌ Invalid Sui address error
+```
+
+✅ **Correct**: Use blockchain object IDs
+```typescript
+tx.pure.id(tier.tierId); // ✅ Correct blockchain ID
+```
+
+**Best Practice**: Maintain both IDs in your data model:
+- `id`: Database UUID (internal use)
+- `objectId` or `tierId`: Sui blockchain object ID (for transactions)
+
+### Other Common Mistakes
 
 ❌ **Wrong**: Hardcoding gas budget
 ✅ **Correct**: Let SDK estimate gas automatically

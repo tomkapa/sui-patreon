@@ -119,6 +119,7 @@ export function Sidebar() {
                       alt={creator.displayName}
                       fill
                       className="object-cover"
+                      unoptimized
                     />
                   </div>
                   <span className="truncate text-sm font-medium text-foreground">
@@ -147,6 +148,7 @@ export function Sidebar() {
                       alt={user.displayName || "User"}
                       fill
                       className="object-cover"
+                      unoptimized
                     />
                   </div>
                 ) : (

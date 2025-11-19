@@ -10,6 +10,7 @@
     "clean": "rm -rf .next node_modules"
   },
   "dependencies": {
+    "@hookform/resolvers": "^5.2.2",
     "@mysten/dapp-kit": "0.19.9",
     "@mysten/enoki": "0.12.11",
     "@mysten/messaging": "^0.0.3",
@@ -32,8 +33,10 @@
     "next": "16.0.3",
     "react": "19.2.0",
     "react-dom": "19.2.0",
+    "react-hook-form": "^7.66.1",
     "sonner": "^2.0.7",
     "tailwind-merge": "3.4.0",
+    "zod": "^4.1.12",
     "zustand": "5.0.8"
   },
   "devDependencies": {

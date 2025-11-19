@@ -24,6 +24,7 @@ export function CreatorCard({ creator, variant = "default" }: CreatorCardProps &
             alt={`${creator.displayName} cover`}
             fill
             className="object-cover transition-transform group-hover:scale-105"
+            unoptimized
           />
         ) : (
           <div className="flex h-full items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">
@@ -44,6 +45,7 @@ export function CreatorCard({ creator, variant = "default" }: CreatorCardProps &
               alt={creator.displayName}
               fill
               className="object-cover"
+              unoptimized
             />
           </div>
 

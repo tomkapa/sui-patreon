@@ -26,6 +26,11 @@ const nextConfig: NextConfig = {
         hostname: 'aggregator.walrus-testnet.walrus.space',
       },
       {
+        protocol: 'https',
+        hostname: 'minio.7k.ag',
+        pathname: '/sui-patreon/**',
+      },
+      {
         protocol: "https",
         hostname: "**",
       },

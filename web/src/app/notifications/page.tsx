@@ -14,11 +14,13 @@ import {
   markAsRead,
   markAllAsRead,
 } from "@/services/notifications";
+import { useUser } from "@/contexts/user-context";
 
 type FilterTab = "all" | "unread";
 
 export default function NotificationsPage() {
   const router = useRouter();
+  const { user } = useUser();
   const [activeTab, setActiveTab] = useState<FilterTab>("all");
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -28,14 +30,18 @@ export default function NotificationsPage() {
 
   // Load notifications
   useEffect(() => {
-    loadNotifications();
-  }, [activeTab]);
+    if (user?.address) {
+      loadNotifications();
+    }
+  }, [activeTab, user?.address]);
 
   const loadNotifications = async () => {
+    if (!user?.address) return;
+
     try {
       setIsLoading(true);
       const unreadOnly = activeTab === "unread";
-      const response = await fetchNotifications(unreadOnly, 50, 0);
+      const response = await fetchNotifications(user.address, unreadOnly, 50, 0);
       setNotifications(response.notifications);
       setTotalCount(response.total);
       setUnreadCount(response.unreadCount);
@@ -47,10 +53,12 @@ export default function NotificationsPage() {
   };
 
   const handleNotificationClick = async (notification: Notification) => {
+    if (!user?.address) return;
+
     // Mark as read
     if (!notification.isRead) {
       try {
-        await markAsRead(notification.id);
+        await markAsRead(user.address, notification.id);
         setNotifications((prev) =>
           prev.map((n) =>
             n.id === notification.id ? { ...n, isRead: true } : n
@@ -69,9 +77,11 @@ export default function NotificationsPage() {
   };
 
   const handleMarkAllAsRead = async () => {
+    if (!user?.address) return;
+
     try {
       setIsMarkingAllRead(true);
-      await markAllAsRead();
+      await markAllAsRead(user.address);
       setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
       setUnreadCount(0);
     } catch (error) {

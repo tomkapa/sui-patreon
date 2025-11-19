@@ -18,6 +18,7 @@ import {
   markAsRead,
   markAllAsRead,
 } from "@/services/notifications";
+import { useUser } from "@/contexts/user-context";
 
 interface NotificationDropdownProps {
   children: React.ReactNode;
@@ -29,6 +30,7 @@ export function NotificationDropdown({
   onUnreadCountChange,
 }: NotificationDropdownProps) {
   const router = useRouter();
+  const { user } = useUser();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isMarkingAllRead, setIsMarkingAllRead] = useState(false);
@@ -36,15 +38,17 @@ export function NotificationDropdown({
 
   // Load notifications when dropdown opens
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && user?.address) {
       loadNotifications();
     }
-  }, [isOpen]);
+  }, [isOpen, user?.address]);
 
   const loadNotifications = async () => {
+    if (!user?.address) return;
+
     try {
       setIsLoading(true);
-      const response = await fetchNotifications(false, 10, 0);
+      const response = await fetchNotifications(user.address, false, 10, 0);
       setNotifications(response.notifications);
       onUnreadCountChange?.(response.unreadCount);
     } catch (error) {
@@ -55,10 +59,12 @@ export function NotificationDropdown({
   };
 
   const handleNotificationClick = async (notification: Notification) => {
+    if (!user?.address) return;
+
     // Mark as read
     if (!notification.isRead) {
       try {
-        await markAsRead(notification.id);
+        await markAsRead(user.address, notification.id);
         setNotifications((prev) =>
           prev.map((n) =>
             n.id === notification.id ? { ...n, isRead: true } : n
@@ -82,9 +88,11 @@ export function NotificationDropdown({
   };
 
   const handleMarkAllAsRead = async () => {
+    if (!user?.address) return;
+
     try {
       setIsMarkingAllRead(true);
-      await markAllAsRead();
+      await markAllAsRead(user.address);
       setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
       onUnreadCountChange?.(0);
     } catch (error) {

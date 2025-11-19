@@ -271,6 +271,7 @@ export default function CreatorProfilePage({ params }: PageProps) {
                     alt={creator.displayName}
                     fill
                     className="object-cover"
+                    unoptimized
                   />
                 </div>
 
