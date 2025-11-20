@@ -2,13 +2,15 @@
 
 [move]
 version = 3
-manifest_digest = "77A754C88EC881B25A9AA92EE56B66437E9C1D568732F74D5E08008D92FB2085"
-deps_digest = "397E6A9F7A624706DBDFEE056CE88391A15876868FD18A88504DA74EB458D697"
+manifest_digest = "D898F3751ADE77FC10CB41D2EB5B52DE9D0F9834350387E5CD5CAB3F5AF98634"
+deps_digest = "CAFAD8A7CF51067FB4358215BECB86BD100DD64E57C2AC8A7AE7D74B688F5965"
 dependencies = [
   { id = "Bridge", name = "Bridge" },
   { id = "MoveStdlib", name = "MoveStdlib" },
   { id = "Sui", name = "Sui" },
   { id = "SuiSystem", name = "SuiSystem" },
+  { id = "WAL", name = "WAL" },
+  { id = "Walrus", name = "Walrus" },
   { id = "asset", name = "asset" },
 ]
 
@@ -44,6 +46,29 @@ dependencies = [
 ]
 
 [[move.package]]
+id = "WAL"
+source = { local = "../dependencies/wal" }
+
+dependencies = [
+  { id = "Bridge", name = "Bridge" },
+  { id = "MoveStdlib", name = "MoveStdlib" },
+  { id = "Sui", name = "Sui" },
+  { id = "SuiSystem", name = "SuiSystem" },
+]
+
+[[move.package]]
+id = "Walrus"
+source = { local = "../dependencies/walrus" }
+
+dependencies = [
+  { id = "Bridge", name = "Bridge" },
+  { id = "MoveStdlib", name = "MoveStdlib" },
+  { id = "Sui", name = "Sui" },
+  { id = "SuiSystem", name = "SuiSystem" },
+  { id = "WAL", name = "WAL" },
+]
+
+[[move.package]]
 id = "asset"
 source = { local = "../dependencies/asset" }
 
@@ -55,7 +80,7 @@ dependencies = [
 ]
 
 [move.toolchain-version]
-compiler-version = "1.57.3"
+compiler-version = "1.60.0"
 edition = "2024.beta"
 flavor = "sui"
 
@@ -63,6 +88,6 @@ flavor = "sui"
 
 [env.testnet]
 chain-id = "4c78adac"
-original-published-id = "0x40165ac9dd86da55bbd83465cfcae268a021f58e8cd5e54c7fcaad1161859f01"
-latest-published-id = "0x40165ac9dd86da55bbd83465cfcae268a021f58e8cd5e54c7fcaad1161859f01"
+original-published-id = "0x1caafd43a5da2f0668b505533cc72208db7f94f5f9bb86f26a5ebb2476de3787"
+latest-published-id = "0x1caafd43a5da2f0668b505533cc72208db7f94f5f9bb86f26a5ebb2476de3787"
 published-version = "1"

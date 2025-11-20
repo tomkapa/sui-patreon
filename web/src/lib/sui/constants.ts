@@ -6,19 +6,23 @@ import { SUI_CLOCK_OBJECT_ID } from '@mysten/sui/utils';
 
 // Contract Configuration
 export const PACKAGE_ID =
-  '0x40165ac9dd86da55bbd83465cfcae268a021f58e8cd5e54c7fcaad1161859f01';
+  '0x1caafd43a5da2f0668b505533cc72208db7f94f5f9bb86f26a5ebb2476de3787';
 
 export const PROFILE_REGISTRY =
-  '0xeb507cc11d5a60e778fcf40ab888b2e94b51708854e3ec3aebffa54d339185bd';
+  '0xee65eb125108c861547a574fdbe0463857426a30dbe38ed985cabaac76dbe881';
 
 export const TIER_REGISTRY =
-  '0xfc002c817679f33b0de430dda84149d5f9e1c7f1afc470069dcc4de18306e3e3';
+  '0x02e7083f1b1c481fbf97b9d14b413a7f46707bef0a7d761b9faeea0bb42adb92';
 
 export const CONTENT_REGISTRY =
-  '0x7f94954a4bb44c733e5550af143a04bf77d5b0b0a168de210271cb296f6c70e5';
+  '0x5e907d8cbd38f9f99b8704deb76c193a1bb432bad42f510c1416555b1bed8a86';
 
 // System Objects
 export { SUI_CLOCK_OBJECT_ID };
+
+// WALRUS Configuration
+export const WALRUS_TYPE =
+  '0x8270feb7375eee355e64fdb69c50abb6b5f9393a722883c1cf45f8e26048810a::wal::WAL';
 
 // USDC Configuration (Testnet)
 export const USDC_TYPE =

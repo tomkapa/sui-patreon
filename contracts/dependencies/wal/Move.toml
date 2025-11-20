@@ -1,0 +1,9 @@
+[package]
+name = "WAL"
+edition = "2024.beta"
+published-at = "0x8270feb7375eee355e64fdb69c50abb6b5f9393a722883c1cf45f8e26048810a"
+
+[dependencies]
+
+[addresses]
+wal = "0x8270feb7375eee355e64fdb69c50abb6b5f9393a722883c1cf45f8e26048810a"

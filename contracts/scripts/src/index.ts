@@ -1,5 +1,5 @@
 import { Command } from 'commander';
-import { createContent, createProfile, createTier, deactivateTier, purchase, sendCoin } from './builder';
+import { createContent, createProfile, createTier, deactivateTier, extendBlob, purchase, sendCoin } from './builder';
 import { createPost, viewPost } from './walrus';
 import {
   displayWalletSummary,
@@ -197,24 +197,39 @@ program
   .argument('<description>', 'Content description')
   .argument('<contentType>', 'MIME type (e.g., "video/mp4", "image/jpeg")')
   .argument('<sealedPatchId>', 'Sealed (encrypted) patch ID from Walrus')
+  .argument('<blobObjectId>', 'Blob object ID from Walrus')
   .argument('[previewPatchId]', 'Preview patch ID from Walrus (optional)')
   .argument('[tierIds]', 'Comma-separated tier IDs for access control (optional, empty = public)')
-  .action((nonce, title, description, contentType, sealedPatchId, previewPatchId, tierIds) => {
+  .action((nonce, title, description, contentType, sealedPatchId, blobObjectId, previewPatchId, tierIds) => {
     const tierIdArray = tierIds ? tierIds.split(',').map((id: string) => id.trim()) : undefined;
-    return createContent(nonce, title, description, contentType, sealedPatchId, previewPatchId, tierIdArray);
+    return createContent(nonce, title, description, contentType, sealedPatchId, blobObjectId, previewPatchId, tierIdArray);
   })
   .addHelpText(
     'after',
     '\nExamples:\n' +
       '  # Public content (no tier restrictions)\n' +
-      '  $ bun start create-content 1 "Tutorial" "How to..." "video/mp4" "SEALED_ID" "PREVIEW_ID"\n\n' +
+      '  $ bun start create-content 1 "Tutorial" "How to..." "video/mp4" "SEALED_ID" "BLOB_ID" "PREVIEW_ID"\n\n' +
       '  # Tier-restricted content (Premium tier only)\n' +
-      '  $ bun start create-content 2 "Exclusive" "Premium content" "video/mp4" "SEALED_ID" "PREVIEW_ID" "0xTIER_ID"\n\n' +
+      '  $ bun start create-content 2 "Exclusive" "Premium content" "video/mp4" "SEALED_ID" "BLOB_ID" "PREVIEW_ID" "0xTIER_ID"\n\n' +
       '  # Multiple tier access (Basic OR Premium)\n' +
-      '  $ bun start create-content 3 "Article" "Content" "text/markdown" "SEALED_ID" "" "0xTIER1,0xTIER2"\n\n' +
+      '  $ bun start create-content 3 "Article" "Content" "text/markdown" "SEALED_ID" "BLOB_ID" "" "0xTIER1,0xTIER2"\n\n' +
       'Access Control:\n' +
       '  - No tierIds (or empty) = Public content (anyone can access)\n' +
       '  - With tierIds = Restricted (requires subscription to ANY listed tier)\n'
+  );
+
+program
+  .command('extend-blob')
+  .description('Extend the blob of a content')
+  .argument('<contentId>', 'Content object ID')
+  .argument('<payment>', 'Payment coin object ID')
+  .argument('<epochs>', 'Number of epochs to extend the blob', parseInt)
+  .action(extendBlob)
+  .addHelpText(
+    'after',
+    '\nExample:\n' +
+      '  $ bun start extend-blob 0xCONTENT_ID 0xPAYMENT_COIN_ID 1\n' +
+      '\nThis extends the blob of the content by 1 epoch.\n'
   );
 
 // =============================================================================

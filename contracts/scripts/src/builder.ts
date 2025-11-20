@@ -321,6 +321,7 @@ export async function createContent(
   description: string,
   contentType: string,
   sealedPatchId: string,
+  blobObjectId: string,
   previewPatchId?: string,
   tierIds?: string[]
 ) {
@@ -354,6 +355,7 @@ export async function createContent(
         tx.pure.string(previewPatchId || sealedPatchId),
         tx.pure.string(sealedPatchId),
         tx.pure.vector('id', tierIds || []),
+        tx.object(blobObjectId),
         tx.object(SUI_CLOCK_OBJECT_ID),
       ],
     });
@@ -377,6 +379,53 @@ export async function createContent(
     extractCreatedObjects(result);
   } catch (error: any) {
     console.error('\n❌ Failed to create content:');
+    console.error(`   ${error.message || error}`);
+    throw error;
+  }
+}
+
+/**
+ * Extend the blob of a content
+ *
+ * @param contentId - Content object ID
+ * @param payment - Payment coin object ID
+ * @param epochs - Number of epochs to extend the blob
+ */
+export async function extendBlob(
+  contentId: string,
+  payment: string,
+  epochs: number
+) {
+  console.log('\n📝 Extending Blob...');
+  console.log(`   Content ID: ${contentId}`);
+  console.log(`   Payment Coin: ${payment}`);
+  console.log(`   Epochs: ${epochs}`);
+
+  try {
+    const tx = new Transaction();
+    tx.moveCall({
+      target: `${CONFIG.PUBLISHED_AT}::content::extend_blob`,
+      arguments: [
+        tx.object(contentId),
+        tx.object('0x6c2547cbbc38025cf3adac45f63cb0a8d12ecf777cdc75a4971612bf97fdf6af'),
+        tx.object(payment),
+        tx.pure.u32(epochs),
+      ],
+    });
+
+    const result = await suiClient.signAndExecuteTransaction({
+      transaction: tx,
+      signer: keypair,
+      options: callOptions(),
+    });
+
+    console.log('\n✅ Blob extended successfully!');
+    console.log(`   Transaction: ${result.digest}`);
+
+    displayEvents(result);
+    extractCreatedObjects(result);
+  } catch (error: any) {
+    console.error('\n❌ Failed to extend blob:');
     console.error(`   ${error.message || error}`);
     throw error;
   }

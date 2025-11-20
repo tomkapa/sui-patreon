@@ -1,5 +1,5 @@
 import { bcsCreatorInfo } from '@/types/bcs';
-import { Transaction } from '@mysten/sui/transactions';
+import { Transaction, TransactionArgument } from '@mysten/sui/transactions';
 import { SUI_CLOCK_OBJECT_ID } from '@mysten/sui/utils';
 import { CONFIG, suiClient } from './config';
 
@@ -60,6 +60,7 @@ const createContent = (
   preview_patch_id: string,
   sealed_patch_id: string,
   tier_ids: string[],
+  blob_object_id: string,
 ) => {
   const tx = new Transaction();
   tx.moveCall({
@@ -73,7 +74,26 @@ const createContent = (
       tx.pure.string(preview_patch_id),
       tx.pure.string(sealed_patch_id),
       tx.pure.vector('id', tier_ids),
+      tx.object(blob_object_id),
       tx.object(SUI_CLOCK_OBJECT_ID),
+    ],
+  });
+  return tx;
+};
+
+const extendBlob = (
+  content_id: string,
+  payment: TransactionArgument,
+  epochs: number
+) => {
+  const tx = new Transaction();
+  tx.moveCall({
+    target: `${CONFIG.PUBLISHED_AT}::content::extend_blob`,
+    arguments: [
+      tx.object(content_id),
+      tx.object('0x6c2547cbbc38025cf3adac45f63cb0a8d12ecf777cdc75a4971612bf97fdf6af'),
+      payment,
+      tx.pure.u32(epochs),
     ],
   });
   return tx;
@@ -108,5 +128,6 @@ export const patreon = {
   createTier,
   purchase,
   createContent,
+  extendBlob,
   updateProfile,
 };

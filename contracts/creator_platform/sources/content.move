@@ -4,8 +4,12 @@ use creator_platform::subscription::ActiveSubscription;
 use std::string::String;
 use sui::bcs::{Self, BCS};
 use sui::clock::Clock;
+use sui::coin::Coin;
 use sui::event;
 use sui::table::{Self, Table};
+use wal::wal::WAL;
+use walrus::blob::Blob;
+use walrus::system::System;
 
 // ===== Error Codes =====
 
@@ -45,6 +49,7 @@ public struct Content has key {
     preview_patch_id: String, // Preview patch ID in Walrus
     sealed_patch_id: String, // Sealed patch ID in Walrus
     tier_ids: vector<ID>, // Tier IDs required for access (empty = public)
+    blob: Blob,
     created_at: u64,
 }
 
@@ -68,6 +73,7 @@ public fun create_content(
     preview_patch_id: String,
     sealed_patch_id: String,
     tier_ids: vector<ID>,
+    blob: Blob,
     clock: &Clock,
     ctx: &mut TxContext,
 ) {
@@ -82,6 +88,7 @@ public fun create_content(
         preview_patch_id,
         sealed_patch_id,
         tier_ids,
+        blob,
         created_at: clock.timestamp_ms(),
     };
 
@@ -107,6 +114,15 @@ public fun create_content(
 
     // Share object to allow public metadata access
     transfer::share_object(content);
+}
+
+public fun extend_blob(
+    self: &mut Content,
+    system: &mut System,
+    coin: &mut Coin<WAL>,
+    extended_epochs: u32,
+) {
+    system.extend_blob(&mut self.blob, extended_epochs, coin);
 }
 
 // ===== Access Verification Functions =====

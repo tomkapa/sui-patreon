@@ -8,7 +8,7 @@ import { useUserSubscriptions } from '@/hooks/api/useSubscriptionQueries';
 import { useDecryptContent } from '@/hooks/useDecryptContent';
 import { formatNumber, formatRelativeTime } from '@/lib/utils';
 import { DecryptHelpers } from '@/lib/walrus/decrypt';
-import { useCurrentAccount } from '@mysten/dapp-kit';
+import { useCurrentAccount, useSignAndExecuteTransaction } from '@mysten/dapp-kit';
 import { useUser } from '@/contexts/user-context';
 import {
   AlertCircle,
@@ -19,11 +19,25 @@ import {
   Loader2,
   Lock,
   Share2,
+  Clock,
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { use, useEffect, useMemo, useState } from 'react';
 import { toast } from '@/lib/toast';
+import { patreon } from '@/lib/patreon';
+import { Transaction } from '@mysten/sui/transactions';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { WALRUS_TYPE } from '@/lib/sui/constants';
 
 interface PageProps {
   params: Promise<{ contentId: string }>;
@@ -161,6 +175,8 @@ export default function ContentDetailPage({ params }: PageProps) {
   const { contentId } = use(params);
   const router = useRouter();
   const { user } = useUser();
+  const currentAccount = useCurrentAccount();
+  const { mutate: signAndExecute } = useSignAndExecuteTransaction();
   const { data: subscriptions } = useUserSubscriptions(user?.address);
   const {
     data: contentData,
@@ -201,6 +217,9 @@ export default function ContentDetailPage({ params }: PageProps) {
   }, [mediaUrl, contentData?.contentType]);
 
   const [isLiked, setIsLiked] = useState(false);
+  const [showExtendDialog, setShowExtendDialog] = useState(false);
+  const [epochs, setEpochs] = useState('1');
+  const [isExtending, setIsExtending] = useState(false);
 
   // Handle like action
   const handleLike = () => {
@@ -238,6 +257,64 @@ export default function ContentDetailPage({ params }: PageProps) {
   const handleCreatorClick = () => {
     if (contentData?.isPublic) {
       router.push(`/creator/${contentData.creator.address}`);
+    }
+  };
+
+  // Handle extend blob
+  const handleExtendBlob = async () => {
+    if (!currentAccount) {
+      toast.error('Wallet not connected', {
+        description: 'Please connect your wallet to extend blob storage',
+      });
+      return;
+    }
+
+    const epochsNum = parseInt(epochs);
+    if (isNaN(epochsNum) || epochsNum < 1) {
+      toast.error('Invalid epochs', {
+        description: 'Please enter a valid number of epochs (minimum 1)',
+      });
+      return;
+    }
+
+    setIsExtending(true);
+
+    try {
+      // Create a new transaction and split coins for payment
+      const tx = new Transaction();
+      const [coin] = tx.splitCoins(WALRUS_TYPE, [tx.pure.u64(epochsNum * 50_000_000)]);
+
+      // Build the extend blob call using the patreon helper
+      const extendTx = patreon.extendBlob(contentId, coin, epochsNum);
+      
+      signAndExecute(
+        {
+          transaction: extendTx,
+        },
+        {
+          onSuccess: (result) => {
+            console.log('Extend blob success:', result);
+            toast.success('Blob storage extended!', {
+              description: `Extended for ${epochsNum} epoch${epochsNum > 1 ? 's' : ''}`,
+            });
+            setShowExtendDialog(false);
+            setEpochs('1');
+          },
+          onError: (error) => {
+            console.error('Extend blob error:', error);
+            toast.error('Failed to extend blob storage', {
+              description: error.message || 'An error occurred',
+            });
+          },
+        }
+      );
+    } catch (error) {
+      console.error('Extend blob error:', error);
+      toast.error('Failed to extend blob storage', {
+        description: error instanceof Error ? error.message : 'An error occurred',
+      });
+    } finally {
+      setIsExtending(false);
     }
   };
 
@@ -372,6 +449,18 @@ export default function ContentDetailPage({ params }: PageProps) {
                   Share
                 </Button>
 
+                {/* Extend Blob Button */}
+                <Button
+                  variant='outline'
+                  size='sm'
+                  onClick={() => setShowExtendDialog(true)}
+                  className='gap-2'
+                  title='Help extend blob storage for this content'
+                >
+                  <Clock className='h-4 w-4' />
+                  Extend Storage
+                </Button>
+
                 {/* Lock Icon for Exclusive */}
                 {!isPublic && !isSubscribed && (
                   <div className='flex items-center gap-2 rounded-md border border-primary/20 bg-primary/10 px-3 py-2 text-sm font-medium text-primary'>
@@ -474,6 +563,60 @@ export default function ContentDetailPage({ params }: PageProps) {
           <ContentCarousel title='Popular posts' posts={popularPosts} />
         </main>
       </div>
+
+      {/* Extend Blob Dialog */}
+      <Dialog open={showExtendDialog} onOpenChange={setShowExtendDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Extend Blob Storage</DialogTitle>
+            <DialogDescription>
+              If you like this content, help the creator extend blob storage to
+              keep it available longer. Each epoch costs approximately 1 SUI.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className='space-y-4 py-4'>
+            <div className='space-y-2'>
+              <Label htmlFor='epochs'>Number of Epochs</Label>
+              <Input
+                id='epochs'
+                type='number'
+                min='1'
+                value={epochs}
+                onChange={(e) => setEpochs(e.target.value)}
+                placeholder='Enter number of epochs'
+                disabled={isExtending}
+              />
+              <p className='text-xs text-muted-foreground'>
+                Estimated cost: ~{parseInt(epochs) || 0} SUI
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant='outline'
+              onClick={() => {
+                setShowExtendDialog(false);
+                setEpochs('1');
+              }}
+              disabled={isExtending}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleExtendBlob} disabled={isExtending}>
+              {isExtending ? (
+                <>
+                  <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+                  Extending...
+                </>
+              ) : (
+                'Confirm'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

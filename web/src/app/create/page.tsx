@@ -133,7 +133,8 @@ export default function CreatePage() {
         formData.exclusiveFile?.type!,
         files[0].id,
         files[1].id,
-        formData.tierIds
+        formData.tierIds,
+        files[0].blobObject.id.id
       );
       await signAndExecuteTransaction({ transaction: createTx });
       // Success - redirect to creator dashboard or post page

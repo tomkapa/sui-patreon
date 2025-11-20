@@ -44,7 +44,7 @@ export function ChannelList({ onChannelSelect }: ChannelListProps) {
   }, [isReady, fetchChannels]);
 
   return (
-    <div className="flex flex-col rounded-xl border bg-gradient-to-br from-card to-card/50 shadow-sm h-full max-h-149">
+    <div className="flex flex-col rounded-xl border bg-gradient-to-br from-card to-card/50 shadow-sm h-full max-h-[calc(100vh-13rem)]">
       <div className="flex items-center justify-between border-b p-6 flex-shrink-0">
         <div>
           <h3 className="text-xl font-bold tracking-tight">Your Channels</h3>

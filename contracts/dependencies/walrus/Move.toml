@@ -1,0 +1,10 @@
+[package]
+name = "Walrus"
+edition = "2024.beta"
+published-at = "0xa998b8719ca1c0a6dc4e24a859bbb39f5477417f71885fbf2967a6510f699144"
+
+[dependencies]
+WAL = { local = "../wal" }
+
+[addresses]
+walrus = "0xd84704c17fc870b8764832c535aa6b11f21a95cd6f5bb38a9b07d2cf42220c66"

@@ -4,6 +4,8 @@ edition = "2024.beta"
 
 [dependencies]
 asset = { local = "../dependencies/asset" }
+WAL = { local = "../dependencies/wal" }
+Walrus = { local = "../dependencies/walrus" }
 
 [addresses]
 creator_platform = "0x0"
