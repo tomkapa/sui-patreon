@@ -5,11 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useUser } from '@/contexts/user-context';
 import {
-  decryptContent,
+  decryptContentWithZkLogin,
   DecryptContentResult,
   DecryptHelpers,
 } from '@/lib/walrus/decrypt';
-import { useSignPersonalMessage } from '@mysten/dapp-kit';
 import { FormEvent, useState } from 'react';
 
 export default function DecryptTestPage() {
@@ -24,7 +23,6 @@ export default function DecryptTestPage() {
   const [contentType, setContentType] = useState<string>('text/plain');
 
   const { user } = useUser();
-  const { mutateAsync: signPersonalMessage } = useSignPersonalMessage();
   // Check if logged in - if we have an address, we're logged in
   const userAddress = user?.address;
   const isLoggedIn = !!userAddress;
@@ -54,15 +52,10 @@ export default function DecryptTestPage() {
       }
 
       console.log('Starting decryption...', { contentId, subscriptionId });
-      const decryptResult = await decryptContent({
+      const decryptResult = await decryptContentWithZkLogin({
         contentId,
         subscriptionId,
         userAddress,
-        signPersonalMessage: async (message) => {
-          const result = await signPersonalMessage({ message });
-          // dapp-kit returns { signature, bytes } which matches SignatureWithBytes
-          return result;
-        },
       });
 
       setResult(decryptResult);

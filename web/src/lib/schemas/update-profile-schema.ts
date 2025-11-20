@@ -16,9 +16,7 @@ export const updateProfileFormSchema = z.object({
   bio: z
     .string()
     .max(500, 'Bio must be less than 500 characters')
-    .trim()
-    .optional()
-    .default(''),
+    .trim(),
 
   avatar: z
     .instanceof(File)
@@ -45,4 +43,9 @@ export const updateProfileFormSchema = z.object({
     .optional(),
 });
 
-export type UpdateProfileFormData = z.infer<typeof updateProfileFormSchema>;
+export type UpdateProfileFormData = {
+  name: string;
+  bio: string;
+  avatar?: File;
+  background?: File;
+};

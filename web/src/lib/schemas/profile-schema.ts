@@ -16,9 +16,7 @@ export const profileFormSchema = z.object({
   bio: z
     .string()
     .max(500, 'Bio must be less than 500 characters')
-    .trim()
-    .optional()
-    .default(''),
+    .trim(),
 
   avatar: z
     .instanceof(File)
@@ -44,7 +42,13 @@ export const profileFormSchema = z.object({
     )
     .optional(),
 
-  isAdultContent: z.boolean().default(false),
+  isAdultContent: z.boolean(),
 });
 
-export type ProfileFormData = z.infer<typeof profileFormSchema>;
+export type ProfileFormData = {
+  name: string;
+  bio: string;
+  avatar: File;
+  background?: File;
+  isAdultContent: boolean;
+};
