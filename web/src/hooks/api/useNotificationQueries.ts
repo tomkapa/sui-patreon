@@ -22,6 +22,7 @@ type NotificationsQueryOptions = Omit<
 >;
 
 interface UseNotificationsParams {
+  address: string;
   unreadOnly?: boolean;
   limit?: number;
   offset?: number;
@@ -31,12 +32,12 @@ interface UseNotificationsParams {
  * Fetch notifications list.
  */
 export function useNotifications(
-  { unreadOnly, limit = 20, offset = 0 }: UseNotificationsParams = {},
+  { address, unreadOnly, limit = 20, offset = 0 }: UseNotificationsParams,
   options?: NotificationsQueryOptions
 ) {
   return useQuery({
-    queryKey: ["notifications", unreadOnly, limit, offset],
-    queryFn: () => fetchNotifications(unreadOnly, limit, offset),
+    queryKey: ["notifications", address, unreadOnly, limit, offset],
+    queryFn: () => fetchNotifications(address, unreadOnly, limit, offset),
     ...options,
   });
 }
@@ -45,14 +46,15 @@ export function useNotifications(
  * Fetch unread notification count.
  */
 export function useUnreadNotificationCount(
+  address: string,
   options?: Omit<
     UseQueryOptions<number, Error, number, unknown[]>,
     "queryKey" | "queryFn"
   >
 ) {
   return useQuery({
-    queryKey: ["notifications", "unreadCount"],
-    queryFn: fetchUnreadCount,
+    queryKey: ["notifications", "unreadCount", address],
+    queryFn: () => fetchUnreadCount(address),
     ...options,
   });
 }
@@ -61,12 +63,13 @@ export function useUnreadNotificationCount(
  * Mark a single notification as read.
  */
 export function useMarkNotificationAsRead(
-  options?: UseMutationOptions<void, Error, string>
+  options?: UseMutationOptions<void, Error, { address: string; notificationId: string }>
 ) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (notificationId: string) => markAsRead(notificationId),
+    mutationFn: ({ address, notificationId }: { address: string; notificationId: string }) =>
+      markAsRead(address, notificationId),
     onSuccess: (...args) => {
       void queryClient.invalidateQueries({ queryKey: ["notifications"] });
       void queryClient.invalidateQueries({
@@ -82,12 +85,12 @@ export function useMarkNotificationAsRead(
  * Mark all notifications as read.
  */
 export function useMarkAllNotificationsAsRead(
-  options?: UseMutationOptions<number, Error, void>
+  options?: UseMutationOptions<number, Error, string>
 ) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: () => markAllAsRead(),
+    mutationFn: (address: string) => markAllAsRead(address),
     onSuccess: (...args) => {
       void queryClient.invalidateQueries({ queryKey: ["notifications"] });
       void queryClient.invalidateQueries({
