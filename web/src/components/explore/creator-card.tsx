@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { CheckCircle2, Users } from "lucide-react";
 import { ExploreCreator } from "@/types";
 import { formatNumber } from "@/lib/utils";
@@ -24,12 +23,10 @@ export function ExploreCreatorCard({ creator }: ExploreCreatorCardProps) {
       {/* Background Image - Large banner at top */}
       <div className="relative aspect-[16/7] w-full overflow-hidden bg-muted">
         {creator.backgroundUrl ? (
-          <Image
+          <img
             src={creator.backgroundUrl}
             alt={`${creator.displayName} background`}
-            fill
-            className="object-cover transition-transform group-hover:scale-105"
-            unoptimized
+            className="absolute inset-0 h-full w-full object-cover transition-transform group-hover:scale-105"
           />
         ) : (
           <div className="flex h-full items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">
@@ -46,12 +43,10 @@ export function ExploreCreatorCard({ creator }: ExploreCreatorCardProps) {
         <div className="mb-3 flex items-start gap-3">
           {/* Avatar - Overlapping cover image */}
           <div className="relative -mt-8 h-16 w-16 flex-shrink-0 overflow-hidden rounded-full border-4 border-background">
-            <Image
+            <img
               src={avatarUrl}
               alt={creator.displayName}
-              fill
-              className="object-cover"
-              unoptimized
+              className="h-full w-full object-cover"
             />
           </div>
 

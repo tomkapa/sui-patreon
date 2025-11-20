@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import Image from "next/image";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
@@ -245,11 +244,10 @@ export default function CreatorProfilePage({ params }: PageProps) {
           {/* Background/Cover Image */}
           <div className="relative h-64 w-full overflow-hidden bg-muted">
             {creator.backgroundUrl ? (
-              <Image
+              <img
                 src={creator.backgroundUrl}
                 alt={`${creator.displayName} background`}
-                fill
-                className="object-cover"
+                className="absolute inset-0 h-full w-full object-cover"
               />
             ) : (
               <div className="flex h-full items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">
@@ -266,12 +264,10 @@ export default function CreatorProfilePage({ params }: PageProps) {
               <div className="flex items-start gap-6">
                 {/* Avatar */}
                 <div className="relative -mt-16 h-32 w-32 flex-shrink-0 overflow-hidden rounded-full border-4 border-background">
-                  <Image
+                  <img
                     src={creator.avatarUrl}
                     alt={creator.displayName}
-                    fill
-                    className="object-cover"
-                    unoptimized
+                    className="h-full w-full object-cover"
                   />
                 </div>
 

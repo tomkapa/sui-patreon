@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { Play, Heart, Eye, Lock } from "lucide-react";
 import { Content } from "@/types";
@@ -28,11 +27,10 @@ export function ContentCard({ content }: ContentCardProps) {
       {/* Thumbnail */}
       <div className="relative aspect-video w-full overflow-hidden bg-muted">
         {content.thumbnailUrl ? (
-          <Image
+          <img
             src={content.thumbnailUrl}
             alt={content.title}
-            fill
-            className="object-cover transition-transform group-hover:scale-105"
+            className="absolute inset-0 h-full w-full object-cover transition-transform group-hover:scale-105"
           />
         ) : (
           <div className="flex h-full items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">

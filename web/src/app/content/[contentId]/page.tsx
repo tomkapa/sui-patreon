@@ -21,7 +21,6 @@ import {
   Share2,
   Clock,
 } from 'lucide-react';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { use, useEffect, useMemo, useState } from 'react';
 import { toast } from '@/lib/toast';
@@ -121,11 +120,10 @@ function ContentCarousel({
                 {/* Thumbnail */}
                 <div className='relative aspect-video w-full overflow-hidden bg-muted'>
                   {post.thumbnailUrl ? (
-                    <Image
+                    <img
                       src={post.thumbnailUrl}
                       alt={post.title}
-                      fill
-                      className='object-cover transition-transform group-hover:scale-105'
+                      className='absolute inset-0 h-full w-full object-cover transition-transform group-hover:scale-105'
                     />
                   ) : (
                     <div className='flex h-full items-center justify-center bg-linear-to-br from-primary/20 to-primary/5'>
@@ -407,12 +405,10 @@ export default function ContentDetailPage({ params }: PageProps) {
               >
                 {/* Avatar */}
                 <div className='relative h-12 w-12 overflow-hidden rounded-full'>
-                  <Image
+                  <img
                     src={creator.avatarUrl}
                     alt={creator.displayName}
-                    fill
-                    className='object-cover'
-                    unoptimized
+                    className='h-full w-full object-cover'
                   />
                 </div>
 
