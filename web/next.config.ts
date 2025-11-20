@@ -24,6 +24,7 @@ const nextConfig: NextConfig = {
       {
         protocol: 'https',
         hostname: 'aggregator.walrus-testnet.walrus.space',
+        pathname: '/v1/**',
       },
       {
         protocol: 'https',
@@ -35,6 +36,10 @@ const nextConfig: NextConfig = {
         hostname: "**",
       },
     ],
+    // Explicitly disable image optimization size limits
+    minimumCacheTTL: 60,
+    // Allow unoptimized images as fallback
+    unoptimized: process.env.NODE_ENV === 'production' && process.env.RAILWAY_ENVIRONMENT !== undefined ? false : false,
   },
 };
 
