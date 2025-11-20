@@ -38,6 +38,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { WALRUS_TYPE } from '@/lib/sui/constants';
+import { suiClient } from '@/lib/config';
 
 interface PageProps {
   params: Promise<{ contentId: string }>;
@@ -278,19 +279,26 @@ export default function ContentDetailPage({ params }: PageProps) {
     }
 
     setIsExtending(true);
+    const coins = await suiClient.getCoins({
+      owner: currentAccount.address,
+      coinType: WALRUS_TYPE,
+    });
 
     try {
       // Create a new transaction and split coins for payment
       const tx = new Transaction();
-      const [coin] = tx.splitCoins(WALRUS_TYPE, [tx.pure.u64(epochsNum * 50_000_000)]);
+      if (coins.data.length > 1) {
+        tx.mergeCoins(
+          tx.object(coins.data[0].coinObjectId),
+          coins.data.slice(1).map((coin) => tx.object(coin.coinObjectId))
+        );
+      }
 
       // Build the extend blob call using the patreon helper
-      const extendTx = patreon.extendBlob(contentId, coin, epochsNum);
-      
+      patreon.extendBlob(tx, contentId, coins.data[0].coinObjectId, epochsNum);
+
       signAndExecute(
-        {
-          transaction: extendTx,
-        },
+        { transaction: tx },
         {
           onSuccess: (result) => {
             console.log('Extend blob success:', result);
@@ -571,7 +579,7 @@ export default function ContentDetailPage({ params }: PageProps) {
             <DialogTitle>Extend Blob Storage</DialogTitle>
             <DialogDescription>
               If you like this content, help the creator extend blob storage to
-              keep it available longer. Each epoch costs approximately 1 SUI.
+              keep it available longer. Each epoch costs approximately 0.02 WALRUS.
             </DialogDescription>
           </DialogHeader>
 
@@ -588,7 +596,7 @@ export default function ContentDetailPage({ params }: PageProps) {
                 disabled={isExtending}
               />
               <p className='text-xs text-muted-foreground'>
-                Estimated cost: ~{parseInt(epochs) || 0} SUI
+                Estimated cost: ~{parseInt(epochs) * 0.02 || 0} WAL
               </p>
             </div>
           </div>
