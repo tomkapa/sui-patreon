@@ -96,7 +96,7 @@ function mapToCreatorProfile(creator: HomeCreatorResponse): CreatorProfile {
     displayName: creator.name,
     bio: creator.bio,
     avatarUrl,
-    backgroundUrl: creator.backgroundUrl,
+    backgroundUrl: creator.backgroundUrl ?? undefined,
     category: creator.category,
     followerCount: creator.followerCount,
     isVerified: creator.isVerified,

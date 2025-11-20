@@ -37,7 +37,7 @@ export async function getUsdcBalance(
   owner: string
 ): Promise<bigint> {
   const coins = await getUsdcCoins(client, owner);
-  return coins.reduce((total, coin) => total + coin.balance, 0n);
+  return coins.reduce((total, coin) => total + coin.balance, BigInt(0));
 }
 
 /**
@@ -56,7 +56,7 @@ export async function selectPaymentCoin(
     throw new Error('No USDC coins found in wallet');
   }
 
-  const totalBalance = coins.reduce((sum, coin) => sum + coin.balance, 0n);
+  const totalBalance = coins.reduce((sum, coin) => sum + coin.balance, BigInt(0));
 
   if (totalBalance < amount) {
     throw new Error(

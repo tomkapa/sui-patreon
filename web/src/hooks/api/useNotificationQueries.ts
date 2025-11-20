@@ -63,12 +63,13 @@ export function useUnreadNotificationCount(
  * Mark a single notification as read.
  */
 export function useMarkNotificationAsRead(
-  options?: UseMutationOptions<void, Error, string>
+  options?: UseMutationOptions<void, Error, { address: string; notificationId: string }>
 ) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (notificationId: string) => markAsRead(notificationId),
+    mutationFn: ({ address, notificationId }: { address: string; notificationId: string }) =>
+      markAsRead(address, notificationId),
     onSuccess: (...args) => {
       void queryClient.invalidateQueries({ queryKey: ["notifications"] });
       void queryClient.invalidateQueries({
@@ -84,12 +85,12 @@ export function useMarkNotificationAsRead(
  * Mark all notifications as read.
  */
 export function useMarkAllNotificationsAsRead(
-  options?: UseMutationOptions<number, Error, void>
+  options?: UseMutationOptions<number, Error, string>
 ) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: () => markAllAsRead(),
+    mutationFn: (address: string) => markAllAsRead(address),
     onSuccess: (...args) => {
       void queryClient.invalidateQueries({ queryKey: ["notifications"] });
       void queryClient.invalidateQueries({

@@ -125,7 +125,7 @@ export function useTransaction(): UseTransactionResult {
         return {
           digest: result.digest,
           effects: txResult.effects,
-          events: txResult.events,
+          events: txResult.events ?? undefined,
         };
       } catch (err) {
         const error = err instanceof Error ? err : new Error(String(err));

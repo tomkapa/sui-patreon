@@ -9,9 +9,7 @@
 
 import { useUser } from '@/contexts/user-context';
 import { useSignPersonalMessage } from '@mysten/dapp-kit';
-import { SignatureWithBytes } from '@mysten/sui/cryptography';
 import {
-  decryptContent,
   decryptContentViaBackend,
   decryptContentWithZkLogin,
   DecryptHelpers,
@@ -31,13 +29,10 @@ export function Example1_ReactHook() {
     }
 
     try {
-      const result = await decryptContent({
+      const result = await decryptContentWithZkLogin({
         contentId: '0xcontentId456...',
         subscriptionId: '0xsubscriptionId789...',
         userAddress: user.address,
-        signPersonalMessage: async (message) => {
-          return await signPersonalMessage({ message });
-        },
       });
 
       // Use decrypted content
@@ -61,15 +56,13 @@ export function Example1_ReactHook() {
 export async function Example2_DecryptImage(
   contentId: string,
   subscriptionId: string,
-  userAddress: string,
-  signPersonalMessage: (message: Uint8Array) => Promise<SignatureWithBytes>
+  userAddress: string
 ) {
   try {
-    const result = await decryptContent({
+    const result = await decryptContentWithZkLogin({
       contentId,
       subscriptionId,
       userAddress,
-      signPersonalMessage,
     });
 
     // Create image data URL
@@ -90,15 +83,13 @@ export async function Example3_DecryptAndDownload(
   contentId: string,
   subscriptionId: string,
   userAddress: string,
-  filename: string,
-  signPersonalMessage: (message: Uint8Array) => Promise<SignatureWithBytes>
+  filename: string
 ) {
   try {
-    const result = await decryptContent({
+    const result = await decryptContentWithZkLogin({
       contentId,
       subscriptionId,
       userAddress,
-      signPersonalMessage,
     });
 
     // Create download link
@@ -126,16 +117,12 @@ export async function Example3_DecryptAndDownload(
  */
 export async function Example4_DecryptViaBackend(
   contentId: string,
-  subscriptionId: string,
-  userAddress: string,
-  signPersonalMessage: (message: Uint8Array) => Promise<SignatureWithBytes>
+  subscriptionId: string
 ) {
   try {
     const result = await decryptContentViaBackend({
       contentId,
       subscriptionId,
-      userAddress,
-      signPersonalMessage,
       apiBaseUrl: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001',
     });
 
@@ -152,16 +139,14 @@ export async function Example4_DecryptViaBackend(
 export async function Example5_WithErrorHandling(
   contentId: string,
   subscriptionId: string,
-  userAddress: string,
-  signPersonalMessage: (message: Uint8Array) => Promise<SignatureWithBytes>
+  userAddress: string
 ) {
   try {
     console.log('Starting decryption...');
-    const result = await decryptContent({
+    const result = await decryptContentWithZkLogin({
       contentId,
       subscriptionId,
       userAddress,
-      signPersonalMessage,
     });
 
     console.log('Decryption successful:', {
