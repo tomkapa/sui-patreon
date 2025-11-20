@@ -70,3 +70,60 @@ export function slugToTopicName(slug: string): string {
     .join(" ");
 }
 
+/**
+ * Token decimals configuration
+ */
+const TOKEN_DECIMALS: Record<string, number> = {
+  "0x2::sui::SUI": 9,
+  SUI: 9,
+  USDC: 6,
+  WAL: 9,
+};
+
+/**
+ * Format token balance with decimals
+ */
+export function formatBalance(amount: string, decimals: number): string {
+  const num = BigInt(amount);
+  const divisor = BigInt(Math.pow(10, decimals));
+  const whole = num / divisor;
+  const fraction = num % divisor;
+
+  if (fraction === BigInt(0)) {
+    return whole.toString();
+  }
+
+  const fractionStr = fraction.toString().padStart(decimals, "0");
+  // Trim trailing zeros
+  const trimmed = fractionStr.replace(/0+$/, "");
+  return `${whole}.${trimmed}`;
+}
+
+/**
+ * Extract token symbol from coin type
+ */
+export function extractTokenSymbol(coinType: string): string {
+  // Handle full coin type like "0x2::sui::SUI"
+  if (coinType.includes("::")) {
+    const parts = coinType.split("::");
+    return parts[parts.length - 1];
+  }
+  return coinType;
+}
+
+/**
+ * Format token transfers for display
+ */
+export function formatTokenTransfers(
+  transfers: Array<{ coinType: string; amount: string }>
+): string {
+  return transfers
+    .map((t) => {
+      const symbol = extractTokenSymbol(t.coinType);
+      const decimals = TOKEN_DECIMALS[t.coinType] || TOKEN_DECIMALS[symbol] || 0;
+      const formattedAmount = formatBalance(t.amount, decimals);
+      return `${formattedAmount} ${symbol}`;
+    })
+    .join(", ");
+}
+

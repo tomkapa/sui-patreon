@@ -146,3 +146,14 @@ model Notification {
   @@index([recipientId, isRead])
   @@index([createdAt])
 }
+
+// FaucetClaim model - Tracks wallet addresses that have claimed faucet tokens
+model FaucetClaim {
+  id            String   @id @default(uuid()) @db.Uuid
+  walletAddress String   @unique // Sui wallet address that claimed tokens
+  claimedAt     DateTime @default(now()) // Timestamp of claim
+
+  // Indexes for performance
+  @@index([walletAddress])
+  @@index([claimedAt])
+}

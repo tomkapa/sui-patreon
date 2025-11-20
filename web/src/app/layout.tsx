@@ -1,4 +1,5 @@
 import AppWrapper from '@/components/layout/wrapper';
+import { FaucetAutoClaimProvider } from '@/components/faucet';
 import { UserProvider } from '@/contexts/user-context';
 import { SessionKeyProvider } from '@/providers/SessionKeyProvider';
 import { MessagingClientProvider } from '@/providers/MessagingClientProvider';
@@ -36,7 +37,10 @@ export default function RootLayout({
         <AppWrapper>
           <SessionKeyProvider>
             <MessagingClientProvider>
-              <UserProvider>{children}</UserProvider>
+              <UserProvider>
+                <FaucetAutoClaimProvider />
+                {children}
+              </UserProvider>
               <Toaster
                 position="bottom-right"
                 richColors
