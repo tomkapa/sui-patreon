@@ -12,6 +12,7 @@ import { DashboardQueryParams } from '@/services/dashboard';
 import { Content, PostFilter, SubscriptionTier } from '@/types';
 import { ChevronDown, Filter, Search } from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useState } from 'react';
 
 interface RecentPostsProps {
@@ -199,41 +200,44 @@ export function RecentPosts({
         <>
           <div className='grid gap-6 sm:grid-cols-2 lg:grid-cols-3'>
             {filteredPosts.map((post) => (
-              <div
+              <Link
                 key={post.id}
-                className='group cursor-pointer overflow-hidden rounded-lg border border-border bg-card transition-all hover:border-primary/50 hover:shadow-lg'
+                href={`/content/${post.id}`}
+                className='block'
               >
-                {/* Post Image */}
-                {post.thumbnailUrl && (
-                  <div className='relative aspect-video w-full overflow-hidden bg-muted'>
-                    <Image
-                      src={post.thumbnailUrl}
-                      alt={post.title}
-                      fill
-                      className='object-cover transition-transform group-hover:scale-105'
-                    />
-                  </div>
-                )}
+                <div className='group cursor-pointer overflow-hidden rounded-lg border border-border bg-card transition-all hover:border-primary/50 hover:shadow-lg'>
+                  {/* Post Image */}
+                  {post.thumbnailUrl && (
+                    <div className='relative aspect-video w-full overflow-hidden bg-muted'>
+                      <Image
+                        src={post.thumbnailUrl}
+                        alt={post.title}
+                        fill
+                        className='object-cover transition-transform group-hover:scale-105'
+                      />
+                    </div>
+                  )}
 
-                {/* Post Info */}
-                <div className='p-4'>
-                  <h3 className='mb-2 line-clamp-2 font-semibold'>
-                    {post.title}
-                  </h3>
-                  <p className='mb-3 line-clamp-2 text-sm text-muted-foreground'>
-                    {post.description}
-                  </p>
+                  {/* Post Info */}
+                  <div className='p-4'>
+                    <h3 className='mb-2 line-clamp-2 font-semibold'>
+                      {post.title}
+                    </h3>
+                    <p className='mb-3 line-clamp-2 text-sm text-muted-foreground'>
+                      {post.description}
+                    </p>
 
-                  {/* Post Stats */}
-                  <div className='flex items-center gap-4 text-xs text-muted-foreground'>
-                    <span>{post.viewCount} views</span>
-                    <span>{post.likeCount} likes</span>
-                    <span className='ml-auto'>
-                      {new Date(post.createdAt).toLocaleDateString()}
-                    </span>
+                    {/* Post Stats */}
+                    <div className='flex items-center gap-4 text-xs text-muted-foreground'>
+                      <span>{post.viewCount} views</span>
+                      <span>{post.likeCount} likes</span>
+                      <span className='ml-auto'>
+                        {new Date(post.createdAt).toLocaleDateString()}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
 
