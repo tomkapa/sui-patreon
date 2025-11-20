@@ -4,12 +4,8 @@ import { SignatureWithBytes } from '@mysten/sui/cryptography';
 import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
 import { fromHex, toHex } from '@mysten/sui/utils';
 import { WalrusClient } from '@mysten/walrus';
-import dot from 'dotenv';
 
-// Only load dotenv on server-side (Node.js environment)
-if (typeof window === 'undefined') {
-  dot.config();
-}
+// Next.js automatically loads environment variables - no need for dotenv
 
 export const CONFIG = {
   PACKAGE_ID:
