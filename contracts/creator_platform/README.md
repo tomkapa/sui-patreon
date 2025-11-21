@@ -948,7 +948,7 @@ Since Move objects are immutable after deployment:
 
 - [Sui Move Documentation](https://docs.sui.io/concepts/sui-move-concepts)
 - [Sui TypeScript SDK](https://sdk.mystenlabs.com/typescript)
-- [Walrus Storage Integration](https://docs.walrus.site/)
+- [Walrus Storage Integration](https://docs.wal.app/)
 - [Seal Encryption](https://docs.mystenlabs.com/seal)
 
 ## 📄 License

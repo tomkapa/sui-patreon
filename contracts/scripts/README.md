@@ -748,7 +748,7 @@ bun run typecheck
 - [Creator Platform Contracts Documentation](../creator_platform/README.md)
 - [Sui Documentation](https://docs.sui.io)
 - [Sui TypeScript SDK](https://sdk.mystenlabs.com/typescript)
-- [Walrus Storage Documentation](https://docs.walrus.site)
+- [Walrus Storage Documentation](https://docs.wal.app)
 - [Backend API Documentation](../../backend/src/routes/README.md)
 
 ---

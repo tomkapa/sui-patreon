@@ -198,13 +198,12 @@ export function MediaUploadModal({
     dragActive: boolean;
   }) => (
     <div
-      className={`relative flex h-64 flex-col items-center justify-center rounded-lg border-2 border-dashed transition-colors ${
-        dragActive
-          ? 'border-primary bg-primary/10'
-          : file
+      className={`relative flex h-64 flex-col items-center justify-center rounded-lg border-2 border-dashed transition-colors ${dragActive
+        ? 'border-primary bg-primary/10'
+        : file
           ? 'border-primary/50 bg-primary/5'
           : 'border-muted-foreground/25 bg-muted/10'
-      }`}
+        }`}
       onDragOver={(e) => handleDragOver(e, type)}
       onDragLeave={(e) => handleDragLeave(e, type)}
       onDrop={(e) => handleDrop(e, type)}
@@ -290,7 +289,7 @@ export function MediaUploadModal({
           <p className='text-sm text-muted-foreground'>
             File is stored and encrypted by Walrus & Seal.{' '}
             <a
-              href='https://docs.walrus.site/'
+              href='https://docs.wal.app/'
               target='_blank'
               rel='noopener noreferrer'
               className='text-primary underline-offset-4 hover:underline'

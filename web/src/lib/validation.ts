@@ -42,6 +42,26 @@ export function validateCreatePost(formData: CreatePostFormData): ValidationResu
     });
   }
 
+  // File validation - Both preview and exclusive files are required
+  if (!formData.previewFile) {
+    errors.push({
+      field: "previewFile",
+      message: "Preview file is required",
+    });
+  } else if (!formData.previewFile.type.startsWith('image/')) {
+    errors.push({
+      field: "previewFile",
+      message: "Preview file must be an image",
+    });
+  }
+
+  if (!formData.exclusiveFile) {
+    errors.push({
+      field: "exclusiveFile",
+      message: "Exclusive file is required",
+    });
+  }
+
   // Audience validation
   if (formData.audience === "paid" && formData.tierIds.length === 0) {
     errors.push({

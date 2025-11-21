@@ -21,6 +21,12 @@ export function SettingsSidebar({
   onPublish,
   isPublishing = false,
 }: SettingsSidebarProps) {
+  // Check if all required fields are filled
+  const isFormValid =
+    formData.title.trim() !== '' &&
+    formData.content.trim() !== '' &&
+    formData.previewFile !== null &&
+    formData.exclusiveFile !== null;
 
   return (
     <aside className="w-96 shrink-0 border-l border-border bg-card">
@@ -31,11 +37,16 @@ export function SettingsSidebar({
             <Button
               className="w-full"
               onClick={onPublish}
-              disabled={isPublishing || !formData.title.trim()}
+              disabled={isPublishing || !isFormValid}
               type="button"
             >
               {isPublishing ? "Publishing..." : "Publish"}
             </Button>
+            {!isFormValid && !isPublishing && (
+              <p className="text-xs text-muted-foreground text-center">
+                Please fill all required fields
+              </p>
+            )}
           </div>
           <div className="mt-4 text-center">
             <span className="text-sm font-medium text-muted-foreground">Settings</span>

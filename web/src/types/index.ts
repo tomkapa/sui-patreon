@@ -109,8 +109,6 @@ export type AudienceAccess = 'free' | 'paid';
 export interface CreatePostFormData {
   title: string;
   content: string;
-  mediaType?: MediaType;
-  mediaUrl?: string;
   audience: AudienceAccess;
   tierIds: string[];
   enableComments: boolean;

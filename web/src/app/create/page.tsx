@@ -1,6 +1,10 @@
 'use client';
 
-import { MediaTypeSelector } from '@/components/content/media-type-selector';
+import { FileUploadSection } from '@/components/content/file-upload-section';
+import {
+  PublishingProgressModal,
+  PublishingStep,
+} from '@/components/content/publishing-progress-modal';
 import { SettingsSidebar } from '@/components/content/settings-sidebar';
 import { AdaptiveLayout } from '@/components/layout/adaptive-layout';
 import { Input } from '@/components/ui/input';
@@ -9,7 +13,7 @@ import { useCreatorProfile } from '@/hooks/api/useCreatorQueries';
 import { computeID, CONFIG, sealClient, walrusClient } from '@/lib/config';
 import { patreon } from '@/lib/patreon';
 import { validateCreatePost, ValidationError } from '@/lib/validation';
-import { CreatePostFormData, MediaType } from '@/types';
+import { CreatePostFormData } from '@/types';
 import {
   useCurrentAccount,
   useSignAndExecuteTransaction,
@@ -65,8 +69,6 @@ async function retryWithBackoff<T>(
 const defaultFormData: CreatePostFormData = {
   title: '',
   content: '',
-  mediaType: undefined,
-  mediaUrl: undefined,
   audience: 'free',
   tierIds: [],
   enableComments: true,
@@ -82,6 +84,8 @@ export default function CreatePage() {
   const router = useRouter();
   const [formData, setFormData] = useState<CreatePostFormData>(defaultFormData);
   const [isPublishing, setIsPublishing] = useState(false);
+  const [publishingStep, setPublishingStep] =
+    useState<PublishingStep>('encrypting');
   const userAddress = useCurrentAccount()?.address;
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>(
     []
@@ -97,10 +101,6 @@ export default function CreatePage() {
     if (validationErrors.length > 0) {
       setValidationErrors([]);
     }
-  };
-
-  const handleMediaTypeSelect = (type: MediaType | undefined) => {
-    handleFormChange({ mediaType: type });
   };
 
   const handlePreview = () => {
@@ -130,12 +130,12 @@ export default function CreatePage() {
     }
 
     setIsPublishing(true);
+    setPublishingStep('encrypting');
 
     try {
-      // TODO: Implement actual publish logic with smart contract
       console.log('Publishing post:', formData);
 
-      // Simulate API call
+      // Step 1: Encrypt exclusive content
       const nonce = Date.now();
       const encodedExclusiveFile = await sealClient.encrypt({
         threshold: 2,
@@ -143,6 +143,9 @@ export default function CreatePage() {
         id: computeID(nonce, userAddress),
         data: new Uint8Array(await formData.exclusiveFile!.arrayBuffer()),
       });
+
+      // Step 2: Upload to Walrus
+      setPublishingStep('uploading-walrus');
       const flow = walrusClient.writeFilesFlow({
         files: [
           WalrusFile.from({
@@ -169,6 +172,9 @@ export default function CreatePage() {
       await signAndExecuteTransaction({ transaction: certifyTx });
       const files = await flow.listFiles();
       console.log('Uploaded files:', files);
+
+      // Step 3: Upload to Sui blockchain
+      setPublishingStep('uploading-sui');
       const createTx = patreon.createContent(
         nonce,
         formData.title,
@@ -179,24 +185,25 @@ export default function CreatePage() {
         formData.tierIds,
         files[0].blobObject.id.id
       );
-      
+
       // Retry the final transaction up to 5 times with exponential backoff
-      // This handles RPC delays and temporary network issues
       await retryWithBackoff(
         async () => await signAndExecuteTransaction({ transaction: createTx }),
-        5,  // maxRetries
-        1000 // baseDelay in ms (1s, 2s, 4s, 8s, 16s)
+        5,
+        1000
       );
-      
-      // Success - redirect to creator dashboard or post page
+
+      // Step 4: Complete
+      setPublishingStep('complete');
+
+      // Success - wait for indexer to process before redirecting
       setTimeout(() => {
         router.push('/creator/dashboard');
-      }, 1000);
+      }, 3000);
     } catch (error) {
       console.error('Error publishing post:', error);
-      alert('Failed to publish post. Please try again.');
-    } finally {
       setIsPublishing(false);
+      alert('Failed to publish post. Please try again.');
     }
   };
 
@@ -210,28 +217,16 @@ export default function CreatePage() {
   // }
   return (
     <AdaptiveLayout>
+      {/* Publishing Progress Modal */}
+      <PublishingProgressModal
+        open={isPublishing}
+        currentStep={publishingStep}
+      />
+
       <div className='flex min-h-screen'>
         {/* Main Content Area */}
         <main className='flex-1 p-8'>
           <div className='mx-auto max-w-4xl space-y-6'>
-            {/* Media Type Buttons */}
-            {/* <button onClick={createProfile}>Create Profile</button>
-            <button onClick={createTier}>Create Tier</button> */}
-            <MediaTypeSelector
-              selectedType={formData.mediaType}
-              onTypeSelect={handleMediaTypeSelect}
-              selectedFiles={{
-                preview: formData.previewFile,
-                exclusive: formData.exclusiveFile,
-              }}
-              onFilesChanged={(preview, exclusive) =>
-                handleFormChange({
-                  previewFile: preview,
-                  exclusiveFile: exclusive,
-                })
-              }
-            />
-
             {/* Title Input */}
             <div>
               <Input
@@ -262,6 +257,18 @@ export default function CreatePage() {
                 </p>
               )}
             </div>
+
+            {/* File Upload Section - Always Visible and Required */}
+            <FileUploadSection
+              previewFile={formData.previewFile}
+              exclusiveFile={formData.exclusiveFile}
+              onFilesChanged={(preview, exclusive) =>
+                handleFormChange({
+                  previewFile: preview,
+                  exclusiveFile: exclusive,
+                })
+              }
+            />
           </div>
         </main>
 
