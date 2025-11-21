@@ -10,6 +10,7 @@ import { jsonResponse } from '../lib/json-serializer';
 import { validateLimit, sanitizeSearchQuery } from '../lib/validation';
 import { toStandardUnit } from '../config/currency';
 import { getAllowedTiersForContents } from '../lib/content-tiers';
+import { getContentStats, getFakedSubscriberCount, getFakedTierSubscriberCount } from '../lib/random-stats';
 
 const router = Router();
 
@@ -312,7 +313,7 @@ router.get('/:address/profile', async (req: Request, res: Response) => {
     const tierIds = tiers.map((tier) => tier.id);
 
     // Calculate follower count (total active subscriptions across all tiers)
-    const followerCount = await prisma.subscription.count({
+    const actualFollowerCount = await prisma.subscription.count({
       where: {
         tierId: { in: tierIds },
         isActive: true,
@@ -323,7 +324,7 @@ router.get('/:address/profile', async (req: Request, res: Response) => {
     // Calculate subscriber count for each tier
     const tiersWithCounts = await Promise.all(
       tiers.map(async (tier) => {
-        const subscriberCount = await prisma.subscription.count({
+        const actualSubCount = await prisma.subscription.count({
           where: {
             tierId: tier.id,
             isActive: true,
@@ -344,7 +345,8 @@ router.get('/:address/profile', async (req: Request, res: Response) => {
           description: tier.description,
           price: priceInStandardUnit,
           benefits,
-          subscriberCount,
+          // TODO: Replace with actual subscriber count once we have enough real users
+          subscriberCount: getFakedTierSubscriberCount(actualSubCount),
           isActive: tier.isActive,
         };
       })
@@ -366,19 +368,22 @@ router.get('/:address/profile', async (req: Request, res: Response) => {
     const tiersMap = await getAllowedTiersForContents(contentIds);
 
     // Format posts response
-    const formattedPosts = recentPosts.map((post) => ({
-      id: post.id,
-      title: post.title,
-      description: post.description,
-      contentType: post.contentType,
-      exclusiveId: post.sealedPatchId,
-      previewId: post.previewPatchId,
-      publishedAt: post.publishedAt,
-      viewCount: post.viewCount,
-      likeCount: post.likeCount,
-      isPublic: post.isPublic,
-      allowedTiers: tiersMap.get(post.id) || [],
-    }));
+    const formattedPosts = recentPosts.map((post) => {
+      const stats = getContentStats(post.viewCount, post.likeCount);
+      return {
+        id: post.id,
+        title: post.title,
+        description: post.description,
+        contentType: post.contentType,
+        exclusiveId: post.sealedPatchId,
+        previewId: post.previewPatchId,
+        publishedAt: post.publishedAt,
+        viewCount: stats.viewCount,
+        likeCount: stats.likeCount,
+        isPublic: post.isPublic,
+        allowedTiers: tiersMap.get(post.id) || [],
+      };
+    });
 
     // Determine if creator has SuiNS name
     const suinsName = creator.name.endsWith('.sui') ? creator.name : undefined;
@@ -391,7 +396,8 @@ router.get('/:address/profile', async (req: Request, res: Response) => {
       bio: creator.bio,
       avatarUrl: creator.avatarUrl,
       backgroundUrl: creator.backgroundUrl,
-      followerCount,
+      // TODO: Replace with actual follower count once we have enough real users
+      followerCount: getFakedSubscriberCount(actualFollowerCount),
       joinedDate: creator.createdAt,
       category: creator.category,
       isVerified: creator.isVerified,

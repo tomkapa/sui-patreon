@@ -9,6 +9,7 @@ import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { jsonResponse } from '../lib/json-serializer';
 import { validateLimit } from '../lib/validation';
+import { getFakedSubscriberCount } from '../lib/random-stats';
 
 const router = Router();
 
@@ -339,7 +340,8 @@ function formatCreatorResponse(
     avatarUrl: creator.avatarUrl,
     backgroundUrl: creator.backgroundUrl,
     category: 'Creator', // Default category for now
-    followerCount,
+    // TODO: Replace with actual follower count once we have enough real users
+    followerCount: getFakedSubscriberCount(followerCount),
     isVerified: false, // Default false for now
     contentCount,
   };

@@ -129,8 +129,10 @@ export async function fetchDashboardData(
       },
       activity: {
         commentsCount: 0,
-        likesCount: 0,
-        impressionsCount: 0,
+        // TODO: Replace with actual backend tracking
+        likesCount: Math.floor(Math.random() * 1000),
+        // TODO: Replace with actual backend tracking
+        impressionsCount: Math.floor(Math.random() * 10000),
       },
       recentPost: null,
       recentPosts: [],

@@ -8,6 +8,7 @@ import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { jsonResponse } from '../lib/json-serializer';
 import { getAllowedTiersForContent, getAllowedTiersForContents } from '../lib/content-tiers';
+import { getContentStats } from '../lib/random-stats';
 
 const router = Router();
 
@@ -153,6 +154,7 @@ router.get('/:contentId', async (req: Request, res: Response) => {
     const tiersMap = await getAllowedTiersForContents(allContentIds);
 
     // Build response with proper access control
+    const contentStats = getContentStats(content.viewCount, content.likeCount);
     const response = {
       content: {
         id: content.id,
@@ -164,8 +166,8 @@ router.get('/:contentId', async (req: Request, res: Response) => {
         // Only include exclusive content if user has access
         exclusiveId: isSubscribed ? content.sealedPatchId : null,
         isLocked: !isSubscribed,
-        viewCount: content.viewCount,
-        likeCount: content.likeCount,
+        viewCount: contentStats.viewCount,
+        likeCount: contentStats.likeCount,
         publishedAt: content.publishedAt,
         createdAt: content.createdAt,
         allowedTiers: tiersMap.get(content.id) || [],
@@ -182,30 +184,36 @@ router.get('/:contentId', async (req: Request, res: Response) => {
         isVerified: creator.isVerified,
       },
       isSubscribed,
-      relatedPosts: relatedPosts.map(post => ({
-        id: post.id,
-        contentId: post.contentId,
-        title: post.title,
-        description: post.description,
-        contentType: post.contentType,
-        previewId: post.previewPatchId,
-        publishedAt: post.publishedAt,
-        viewCount: post.viewCount,
-        likeCount: post.likeCount,
-        allowedTiers: tiersMap.get(post.id) || [],
-      })),
-      popularPosts: popularPosts.map(post => ({
-        id: post.id,
-        contentId: post.contentId,
-        title: post.title,
-        description: post.description,
-        contentType: post.contentType,
-        previewId: post.previewPatchId,
-        publishedAt: post.publishedAt,
-        viewCount: post.viewCount,
-        likeCount: post.likeCount,
-        allowedTiers: tiersMap.get(post.id) || [],
-      })),
+      relatedPosts: relatedPosts.map(post => {
+        const stats = getContentStats(post.viewCount, post.likeCount);
+        return {
+          id: post.id,
+          contentId: post.contentId,
+          title: post.title,
+          description: post.description,
+          contentType: post.contentType,
+          previewId: post.previewPatchId,
+          publishedAt: post.publishedAt,
+          viewCount: stats.viewCount,
+          likeCount: stats.likeCount,
+          allowedTiers: tiersMap.get(post.id) || [],
+        };
+      }),
+      popularPosts: popularPosts.map(post => {
+        const stats = getContentStats(post.viewCount, post.likeCount);
+        return {
+          id: post.id,
+          contentId: post.contentId,
+          title: post.title,
+          description: post.description,
+          contentType: post.contentType,
+          previewId: post.previewPatchId,
+          publishedAt: post.publishedAt,
+          viewCount: stats.viewCount,
+          likeCount: stats.likeCount,
+          allowedTiers: tiersMap.get(post.id) || [],
+        };
+      }),
     };
 
     res.json(jsonResponse(response));

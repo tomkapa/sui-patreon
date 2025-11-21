@@ -10,6 +10,7 @@ import { jsonResponse } from '../lib/json-serializer';
 import { validateLimit, sanitizeSearchQuery } from '../lib/validation';
 import { formatCurrency } from '../config/currency';
 import { getAllowedTiersForContents, type AllowedTier } from '../lib/content-tiers';
+import { getContentStats, getFakedSubscriberCount } from '../lib/random-stats';
 
 const router = Router();
 
@@ -183,7 +184,7 @@ async function getOverviewStats(tierIds: string[]): Promise<OverviewStats> {
   }
 
   // Count active, non-expired subscriptions
-  const totalMembers = await prisma.subscription.count({
+  const actualMemberCount = await prisma.subscription.count({
     where: {
       tierId: { in: tierIds },
       isActive: true,
@@ -228,7 +229,8 @@ async function getOverviewStats(tierIds: string[]): Promise<OverviewStats> {
   const totalRevenueFormatted = formatCurrency(totalRevenueSmallestUnit, 2);
 
   return {
-    totalMembers,
+    // TODO: Replace with actual subscriber count once we have enough real users
+    totalMembers: getFakedSubscriberCount(actualMemberCount),
     totalRevenue: totalRevenueFormatted,
   };
 }
@@ -293,6 +295,7 @@ async function getRecentPost(creatorId: string): Promise<RecentPost | null> {
   const allowedTiers = tiersMap.get(content.id) || [];
 
   const { exclusiveId, previewId } = getMediaIds(content.sealedPatchId, content.previewPatchId);
+  const stats = getContentStats(content.viewCount, content.likeCount);
 
   return {
     id: content.id,
@@ -302,8 +305,8 @@ async function getRecentPost(creatorId: string): Promise<RecentPost | null> {
     previewId,
     audience: content.isPublic || contentTiers.length === 0 ? 'free' : 'paid',
     createdAt: (content.publishedAt || content.createdAt).toISOString(),
-    viewCount: content.viewCount,
-    likeCount: content.likeCount,
+    viewCount: stats.viewCount,
+    likeCount: stats.likeCount,
     allowedTiers,
   };
 }
@@ -428,6 +431,7 @@ async function getRecentPosts(params: {
     const tierNames = itemTierIds.map((tid) => tierMap.get(tid) || 'Unknown');
     const allowedTiers = tiersDetailsMap.get(item.id) || [];
     const { exclusiveId, previewId } = getMediaIds(item.sealedPatchId, item.previewPatchId);
+    const stats = getContentStats(item.viewCount, item.likeCount);
 
     allPosts.push({
       id: item.id,
@@ -438,8 +442,8 @@ async function getRecentPosts(params: {
       audience: item.isPublic || itemTierIds.length === 0 ? 'free' : 'paid',
       tierNames,
       createdAt: (item.publishedAt || item.createdAt).toISOString(),
-      viewCount: item.viewCount,
-      likeCount: item.likeCount,
+      viewCount: stats.viewCount,
+      likeCount: stats.likeCount,
       allowedTiers,
     });
   }

@@ -7,6 +7,7 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { jsonResponse } from '../lib/json-serializer';
+import { getFakedTierSubscriberCount } from '../lib/random-stats';
 
 const router = Router();
 
@@ -53,7 +54,7 @@ router.get('/creator/:walletAddress', async (req: Request, res: Response) => {
     // Add subscriber counts for each tier
     const tiersWithCounts = await Promise.all(
       tiers.map(async (tier) => {
-        const subscriberCount = await prisma.subscription.count({
+        const actualCount = await prisma.subscription.count({
           where: {
             tierId: tier.id,
             isActive: true,
@@ -63,7 +64,8 @@ router.get('/creator/:walletAddress', async (req: Request, res: Response) => {
 
         return {
           ...tier,
-          subscriberCount,
+          // TODO: Replace with actual subscriber count once we have enough real users
+          subscriberCount: getFakedTierSubscriberCount(actualCount),
         };
       })
     );
@@ -114,7 +116,7 @@ router.get('/:tierId', async (req: Request, res: Response) => {
     });
 
     // Count active subscriptions
-    const subscriberCount = await prisma.subscription.count({
+    const actualCount = await prisma.subscription.count({
       where: {
         tierId: tier.id,
         isActive: true,
@@ -125,7 +127,8 @@ router.get('/:tierId', async (req: Request, res: Response) => {
     res.json(jsonResponse({
       ...tier,
       creator,
-      subscriberCount,
+      // TODO: Replace with actual subscriber count once we have enough real users
+      subscriberCount: getFakedTierSubscriberCount(actualCount),
     }));
   } catch (error) {
     console.error('Error fetching tier:', error);

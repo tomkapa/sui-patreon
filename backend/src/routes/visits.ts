@@ -6,6 +6,7 @@
 
 import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
+import { getFakedSubscriberCount } from '../lib/random-stats';
 import { jsonResponse } from '../lib/json-serializer';
 import { validateLimit } from '../lib/validation';
 import { randomUUID } from 'crypto';
@@ -164,7 +165,7 @@ router.get('/recent/:userAddress', async (req: Request, res: Response) => {
         }
 
         // Get follower count (active subscriptions across all creator's tiers)
-        const followerCount = await getFollowerCount(creator.id);
+        const actualFollowerCount = await getFollowerCount(creator.id);
 
         // Get content count (published content only)
         const contentCount = await getContentCount(creator.id);
@@ -178,7 +179,8 @@ router.get('/recent/:userAddress', async (req: Request, res: Response) => {
             name: creator.name,
             bio: creator.bio,
             avatarUrl: creator.avatarUrl,
-            followerCount,
+            // TODO: Replace with actual follower count once we have enough real users
+            followerCount: getFakedSubscriberCount(actualFollowerCount),
             contentCount,
           },
         };

@@ -10,6 +10,7 @@ import { jsonResponse } from '../lib/json-serializer';
 import { validateLimit, sanitizeSearchQuery } from '../lib/validation';
 import { toStandardUnit } from '../config/currency';
 import { getAllowedTiersForContents } from '../lib/content-tiers';
+import { getContentStats } from '../lib/random-stats';
 
 const router = Router();
 
@@ -172,27 +173,30 @@ router.get('/:creatorAddress', async (req: Request, res: Response) => {
     );
 
     // Map database records to LibraryPost format
-    const posts = contentWithTiers.map(item => ({
-      id: item.id,
-      title: item.title,
-      publishDate: item.publishedAt || item.createdAt,
-      tierAccess: item.isPublic
-        ? 'Public'
-        : item.contentTiers.length > 0
-        ? 'Paid'
-        : 'Public',
-      price: item.contentTiers.length > 0 && item.contentTiers[0].tier
-        ? toStandardUnit(item.contentTiers[0].tier.price)
-        : undefined,
-      postType: mapContentTypeToPostType(item.contentType),
-      thumbnailUrl: item.previewPatchId
-        ? `https://aggregator.walrus-testnet.walrus.space/v1/blobs/by-quilt-patch-id/${item.previewPatchId}`
-        : undefined,
-      isDraft: item.isDraft,
-      viewCount: item.viewCount,
-      likeCount: item.likeCount,
-      allowedTiers: tiersMap.get(item.id) || [],
-    }));
+    const posts = contentWithTiers.map(item => {
+      const stats = getContentStats(item.viewCount, item.likeCount);
+      return {
+        id: item.id,
+        title: item.title,
+        publishDate: item.publishedAt || item.createdAt,
+        tierAccess: item.isPublic
+          ? 'Public'
+          : item.contentTiers.length > 0
+          ? 'Paid'
+          : 'Public',
+        price: item.contentTiers.length > 0 && item.contentTiers[0].tier
+          ? toStandardUnit(item.contentTiers[0].tier.price)
+          : undefined,
+        postType: mapContentTypeToPostType(item.contentType),
+        thumbnailUrl: item.previewPatchId
+          ? `https://aggregator.walrus-testnet.walrus.space/v1/blobs/by-quilt-patch-id/${item.previewPatchId}`
+          : undefined,
+        isDraft: item.isDraft,
+        viewCount: stats.viewCount,
+        likeCount: stats.likeCount,
+        allowedTiers: tiersMap.get(item.id) || [],
+      };
+    });
 
     // Calculate pagination metadata
     const totalPages = Math.ceil(totalCount / limit);

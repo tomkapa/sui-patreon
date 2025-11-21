@@ -23,15 +23,47 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { checkCreatorProfile } from '@/services/creator';
+import { CreatorProfile } from '@/types';
 
 interface UserDropdownProps {
   inSidebar?: boolean;
 }
 
 export function UserDropdown({ inSidebar = false }: UserDropdownProps) {
-  const { user, setUser } = useUser();
+  const { user, setUser, switchRole } = useUser();
   const router = useRouter();
   const { mutateAsync: disconnect } = useDisconnectWallet();
+  const [creatorProfile, setCreatorProfile] = useState<CreatorProfile | null>(null);
+  const [isLoadingCreator, setIsLoadingCreator] = useState(true);
+
+  // Fetch creator profile on mount
+  useEffect(() => {
+    const loadCreatorProfile = async () => {
+      if (!user?.address) {
+        setIsLoadingCreator(false);
+        return;
+      }
+
+      try {
+        const profile = await checkCreatorProfile(user.address);
+        setCreatorProfile(profile);
+      } catch (error) {
+        console.error('Failed to load creator profile:', error);
+      } finally {
+        setIsLoadingCreator(false);
+      }
+    };
+
+    loadCreatorProfile();
+  }, [user?.address]);
+
+  const handleCreatorDashboardClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    switchRole('creator');
+    router.push('/creator/dashboard');
+  };
 
   const handleCopyAddress = () => {
     if (user?.address) {
@@ -125,13 +157,42 @@ export function UserDropdown({ inSidebar = false }: UserDropdownProps) {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
 
-        {/* Dashboard Link */}
-        <DropdownMenuItem asChild>
-          <Link href="/creator/dashboard" className="cursor-pointer">
-            <LayoutDashboard className="mr-2 h-4 w-4" />
-            Dashboard
-          </Link>
-        </DropdownMenuItem>
+        {/* Creator Card or Dashboard Link */}
+        {creatorProfile ? (
+          <DropdownMenuItem
+            onClick={handleCreatorDashboardClick}
+            className="cursor-pointer p-3 focus:bg-accent"
+          >
+            <div className="flex items-center gap-3 w-full">
+              {creatorProfile.avatarUrl ? (
+                <img
+                  src={creatorProfile.avatarUrl}
+                  alt={creatorProfile.displayName}
+                  className="h-10 w-10 rounded-full"
+                />
+              ) : (
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
+                  <User className="h-5 w-5" />
+                </div>
+              )}
+              <div className="flex-1 overflow-hidden">
+                <p className="truncate text-sm font-medium">
+                  {creatorProfile.displayName}
+                </p>
+                <p className="truncate text-xs text-muted-foreground">
+                  Creator Dashboard
+                </p>
+              </div>
+            </div>
+          </DropdownMenuItem>
+        ) : !isLoadingCreator ? (
+          <DropdownMenuItem asChild>
+            <Link href="/creator/dashboard" className="cursor-pointer">
+              <LayoutDashboard className="mr-2 h-4 w-4" />
+              Dashboard
+            </Link>
+          </DropdownMenuItem>
+        ) : null}
 
         <DropdownMenuSeparator />
 

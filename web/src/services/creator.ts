@@ -174,3 +174,52 @@ function normalizeContentType(
   if (type.startsWith('image/')) return 'image';
   return 'text'; // Default fallback
 }
+
+/**
+ * Check if a user has a creator profile
+ *
+ * @param address - User's Sui wallet address
+ * @returns Creator profile if exists, null otherwise
+ */
+export async function checkCreatorProfile(
+  address: string
+): Promise<CreatorProfile | null> {
+  try {
+    const url = `${API_BASE_URL}/api/creators/${address}`;
+
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        return null;
+      }
+      throw new Error(`Failed to check creator profile: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+
+    // Map creator data to CreatorProfile
+    return {
+      id: data.id,
+      address: data.address,
+      suinsName: data.suinsName,
+      displayName: data.name,
+      bio: data.bio,
+      avatarUrl: data.avatarUrl || generateDefaultAvatar(data.address),
+      backgroundUrl: data.backgroundUrl || undefined,
+      category: data.category,
+      followerCount: data.followerCount,
+      isVerified: data.isVerified,
+      createdAt: new Date(data.joinedDate || data.createdAt),
+    };
+  } catch (error) {
+    console.error("Error checking creator profile:", error);
+    return null;
+  }
+}
