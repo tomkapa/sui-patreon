@@ -69,7 +69,17 @@ export function decodeJwt(jwt: string): OAuthJwtPayload {
 
     // Base64 decode (handle URL-safe base64)
     const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
-    const jsonPayload = atob(base64);
+    
+    // Decode base64 and properly handle UTF-8 characters
+    // atob() doesn't handle UTF-8, so we need to decode properly
+    const binaryString = atob(base64);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    
+    // Decode UTF-8 bytes to string
+    const jsonPayload = new TextDecoder('utf-8').decode(bytes);
 
     // Parse JSON
     return JSON.parse(jsonPayload) as OAuthJwtPayload;
