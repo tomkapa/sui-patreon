@@ -22,6 +22,11 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: 'SuiPatreon - Support Creators on Sui Blockchain',
   description: 'A decentralized creator platform built on Sui blockchain',
+  icons: {
+    icon: '/sui-patreon-logo.png',
+    shortcut: '/sui-patreon-logo.png',
+    apple: '/sui-patreon-logo.png',
+  },
 };
 
 export default function RootLayout({
