@@ -2,6 +2,7 @@
 
 import { User } from '@/types';
 import { useCurrentAccount } from '@mysten/dapp-kit';
+import { useEnokiProfile } from '@/hooks/useEnokiProfile';
 import React, {
   createContext,
   useCallback,
@@ -27,34 +28,37 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const [currentRole, setCurrentRole] = useState<UserRole>('fan');
   const [isInitialized, setIsInitialized] = useState(false);
   const account = useCurrentAccount();
+  const enokiProfile = useEnokiProfile();
 
-  // Restore user session and role from localStorage on mount
+  // Restore role from localStorage on mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      // Restore role
       const savedRole = localStorage.getItem('userRole') as UserRole | null;
       if (savedRole === 'creator' || savedRole === 'fan') {
         setCurrentRole(savedRole);
       }
-
-      // Restore zkLogin session if valid
-      if (account) {
-        setUser({
-          address: account.address,
-          email: account.label,
-          displayName: account.label || 'User',
-          avatarUrl: account.icon || '',
-          suinsName: null,
-          subscriptions: [],
-          createdAt: new Date(),
-        });
-      } else {
-        setUser(null);
-      }
-
       setIsInitialized(true);
     }
-  }, [account]);
+  }, []);
+
+  // Update user when account or Enoki profile changes
+  useEffect(() => {
+    if (!account) {
+      setUser(null);
+      return;
+    }
+
+    setUser({
+      address: account.address,
+      // Use Enoki profile (from any provider) if available, otherwise fall back to account info
+      email: enokiProfile?.email || account.label || '',
+      displayName: enokiProfile?.displayName || account.label || 'User',
+      avatarUrl: enokiProfile?.avatarUrl || account.icon || '',
+      suinsName: null,
+      subscriptions: [],
+      createdAt: new Date(),
+    });
+  }, [account, enokiProfile]);
 
   const switchRole = useCallback((role: UserRole) => {
     setCurrentRole(role);
