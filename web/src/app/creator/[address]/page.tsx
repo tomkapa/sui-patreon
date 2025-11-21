@@ -117,14 +117,30 @@ export default function CreatorProfilePage({ params }: PageProps) {
           currentAccount.address
         );
 
-        // Refresh subscription status after successful purchase
-        await loadSubscriptionStatus();
+        // Optimistic update - immediately update local state
+        const now = new Date();
+        const expiresAt = new Date(now);
+        expiresAt.setMonth(expiresAt.getMonth() + 1); // Assume 1 month subscription
+
+        setSubscriptionStatus({
+          isSubscribed: true,
+          subscription: {
+            id: 'optimistic-' + Date.now(), // Temporary ID
+            tierId,
+            tierName,
+            startedAt: now,
+            expiresAt,
+            isActive: true,
+          },
+        });
+
         toast.success("Subscription successful!", {
           description: `You are now subscribed to ${tierName}`,
         });
       } catch (err) {
-        // Error already handled by usePurchaseSubscription
+        // On error, revert optimistic update by refetching
         console.error("Subscription failed:", err);
+        await loadSubscriptionStatus();
       }
     },
     [address, currentAccount, purchaseSubscription, loadSubscriptionStatus]
