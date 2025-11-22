@@ -162,11 +162,13 @@ export default function CreatePage() {
       setPublishingStep('uploading-walrus');
       const flow = walrusClient.writeFilesFlow({
         files: [
+          // files[0]: Preview file (for thumbnails/cards)
           WalrusFile.from({
             contents: formData.previewFile!,
             identifier: formData.previewFile!.name,
             tags: { 'content-type': formData.previewFile!.type },
           }),
+          // files[1]: Exclusive file (full content, encrypted if private)
           WalrusFile.from({
             contents: exclusiveFileData,
             identifier: isPublic ? formData.exclusiveFile!.name : 'exclusive.enc',
@@ -194,8 +196,8 @@ export default function CreatePage() {
         formData.title,
         formData.content,
         formData.exclusiveFile?.type!,
-        files[0].id,
-        files[1].id,
+        files[0].id,  // preview_patch_id ← files[0] (preview/thumbnail)
+        files[1].id,  // sealed_patch_id ← files[1] (exclusive/full content)
         formData.tierIds,
         files[0].blobObject.id.id
       );
