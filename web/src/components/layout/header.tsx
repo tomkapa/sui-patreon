@@ -8,11 +8,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useUser } from '@/contexts/user-context';
 import { fetchUnreadCount } from '@/services/notifications';
-import { Bell, Search } from 'lucide-react';
+import { Bell, Search, Menu } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
-export function Header() {
+interface HeaderProps {
+  onMobileMenuToggle?: () => void;
+}
+
+export function Header({ onMobileMenuToggle }: HeaderProps = {}) {
   const { user } = useUser();
   const isAuthenticated = !!user;
   const [unreadCount, setUnreadCount] = useState(0);
@@ -41,9 +45,22 @@ export function Header() {
 
   return (
     <header className='sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60'>
-      <div className='flex h-16 items-center gap-4 px-6'>
+      <div className='flex h-16 items-center gap-4 px-4 lg:px-6'>
+        {/* Mobile Menu Button */}
+        {onMobileMenuToggle && (
+          <Button
+            variant='ghost'
+            size='icon'
+            onClick={onMobileMenuToggle}
+            className='lg:hidden h-9 w-9 shrink-0'
+          >
+            <Menu className='h-5 w-5' />
+            <span className='sr-only'>Open menu</span>
+          </Button>
+        )}
+
         {/* Search */}
-        <div className='w-full max-w-2xl'>
+        <div className='flex-1 max-w-2xl'>
           <div className='relative'>
             <Search className='absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
             <Input
@@ -54,14 +71,11 @@ export function Header() {
           </div>
         </div>
 
-        {/* Spacer to push actions to the right */}
-        <div className='flex-1' />
-
         {/* Actions - Right aligned */}
-        <div className='flex items-center gap-3 ml-auto'>
+        <div className='flex items-center gap-2 lg:gap-3 shrink-0 ml-auto'>
           {isAuthenticated ? (
             <>
-              {/* Role Switcher (Fan/Creator Toggle) */}
+              {/* Role Switcher (Fan/Creator Toggle) - Always visible */}
               <RoleSwitcher />
 
               {/* Notification Bell */}
@@ -81,7 +95,7 @@ export function Header() {
             </>
           ) : (
             <>
-              {/* Role Switcher (Fan/Creator Toggle) */}
+              {/* Role Switcher (Fan/Creator Toggle) - Always visible */}
               <RoleSwitcher />
 
               <LoginButton />

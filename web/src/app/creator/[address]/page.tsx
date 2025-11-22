@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Sidebar } from "@/components/layout/sidebar";
-import { Header } from "@/components/layout/header";
+import { AdaptiveLayout } from "@/components/layout/adaptive-layout";
 import { Button } from "@/components/ui/button";
 import { ContentCard } from "@/components/content/content-card";
 import { CheckCircle2, Users, Calendar, AlertCircle, Loader2 } from "lucide-react";
@@ -202,75 +201,65 @@ export default function CreatorProfilePage({ params }: PageProps) {
   // Loading state
   if (isLoading) {
     return (
-      <div className="flex min-h-screen">
-        <Sidebar />
-        <div className="flex-1 pl-64">
-          <Header />
-          <main>
-            {/* Cover Image Skeleton */}
-            <div className="h-64 w-full animate-pulse bg-muted" />
+      <AdaptiveLayout>
+        {/* Cover Image Skeleton */}
+        <div className="h-48 sm:h-64 w-full animate-pulse bg-muted" />
 
-            {/* Profile Info Skeleton */}
-            <div className="border-b border-border bg-card px-6 py-6">
-              <div className="mx-auto max-w-5xl">
-                <div className="flex items-start gap-6">
-                  {/* Avatar Skeleton */}
-                  <div className="relative -mt-16 h-32 w-32 flex-shrink-0 animate-pulse rounded-full bg-muted" />
+        {/* Profile Info Skeleton */}
+        <div className="border-b border-border bg-card px-4 sm:px-6 py-4 sm:py-6">
+          <div className="mx-auto max-w-5xl">
+            <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-6">
+              {/* Avatar Skeleton */}
+              <div className="relative -mt-12 sm:-mt-16 h-24 w-24 sm:h-32 sm:w-32 flex-shrink-0 animate-pulse rounded-full bg-muted" />
 
-                  {/* Info Skeleton */}
-                  <div className="flex-1 space-y-3 pt-4">
-                    <div className="h-8 w-64 animate-pulse rounded bg-muted" />
-                    <div className="h-4 w-48 animate-pulse rounded bg-muted" />
-                    <div className="h-4 w-96 animate-pulse rounded bg-muted" />
-                    <div className="flex gap-6">
-                      <div className="h-4 w-32 animate-pulse rounded bg-muted" />
-                      <div className="h-4 w-32 animate-pulse rounded bg-muted" />
-                    </div>
-                  </div>
-
-                  {/* Button Skeleton */}
-                  <div className="h-10 w-32 animate-pulse rounded bg-muted pt-4" />
+              {/* Info Skeleton */}
+              <div className="flex-1 space-y-2 sm:space-y-3 sm:pt-4 w-full">
+                <div className="h-6 sm:h-8 w-48 sm:w-64 animate-pulse rounded bg-muted" />
+                <div className="h-4 w-32 sm:w-48 animate-pulse rounded bg-muted" />
+                <div className="h-4 w-full max-w-md animate-pulse rounded bg-muted" />
+                <div className="flex flex-wrap gap-3 sm:gap-6">
+                  <div className="h-4 w-24 sm:w-32 animate-pulse rounded bg-muted" />
+                  <div className="h-4 w-24 sm:w-32 animate-pulse rounded bg-muted" />
                 </div>
               </div>
-            </div>
 
-            {/* Content Skeleton */}
-            <div className="mx-auto max-w-5xl px-6 py-8">
-              <div className="mb-6 h-8 w-64 animate-pulse rounded bg-muted" />
-              <div className="grid gap-6 md:grid-cols-3">
-                {[1, 2, 3].map((i) => (
-                  <div
-                    key={i}
-                    className="h-64 animate-pulse rounded-lg bg-muted"
-                  />
-                ))}
-              </div>
+              {/* Button Skeleton */}
+              <div className="h-10 w-full sm:w-32 animate-pulse rounded bg-muted sm:mt-4" />
             </div>
-          </main>
+          </div>
         </div>
-      </div>
+
+        {/* Content Skeleton */}
+        <div className="mx-auto max-w-5xl px-4 sm:px-6 py-6 sm:py-8">
+          <div className="mb-4 sm:mb-6 h-6 sm:h-8 w-48 sm:w-64 animate-pulse rounded bg-muted" />
+          <div className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {[1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="h-48 sm:h-64 animate-pulse rounded-lg bg-muted"
+              />
+            ))}
+          </div>
+        </div>
+      </AdaptiveLayout>
     );
   }
 
   // Error state
   if (error) {
     return (
-      <div className="flex min-h-screen">
-        <Sidebar />
-        <div className="flex-1 pl-64">
-          <Header />
-          <main className="flex items-center justify-center p-8">
-            <div className="max-w-md text-center">
-              <div className="mb-4 flex justify-center">
-                <AlertCircle className="h-16 w-16 text-destructive" />
-              </div>
-              <h1 className="mb-2 text-2xl font-bold">Error Loading Profile</h1>
-              <p className="mb-6 text-muted-foreground">{error}</p>
-              <Button onClick={loadProfile}>Try Again</Button>
+      <AdaptiveLayout>
+        <div className="flex items-center justify-center p-6 sm:p-8 min-h-[60vh]">
+          <div className="max-w-md text-center">
+            <div className="mb-4 flex justify-center">
+              <AlertCircle className="h-12 w-12 sm:h-16 sm:w-16 text-destructive" />
             </div>
-          </main>
+            <h1 className="mb-2 text-xl sm:text-2xl font-bold">Error Loading Profile</h1>
+            <p className="mb-6 text-sm sm:text-base text-muted-foreground">{error}</p>
+            <Button onClick={loadProfile}>Try Again</Button>
+          </div>
         </div>
-      </div>
+      </AdaptiveLayout>
     );
   }
 
@@ -282,89 +271,83 @@ export default function CreatorProfilePage({ params }: PageProps) {
   const { creator, tiers, recentPosts } = profileData;
 
   return (
-    <div className="flex min-h-screen">
-      <Sidebar />
-
-      <div className="flex-1 pl-64">
-        <Header />
-
-        <main>
-          {/* Background/Cover Image */}
-          <div className="relative h-64 w-full overflow-hidden bg-muted">
-            {creator.backgroundUrl ? (
-              <img
-                src={creator.backgroundUrl}
-                alt={`${creator.displayName} background`}
-                className="absolute inset-0 h-full w-full object-cover"
-              />
-            ) : (
-              <div className="flex h-full items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">
-                <span className="text-6xl font-bold text-muted-foreground/20">
-                  {creator.displayName[0]}
-                </span>
-              </div>
-            )}
+    <AdaptiveLayout>
+      {/* Background/Cover Image */}
+      <div className="relative h-48 sm:h-64 w-full overflow-hidden bg-muted">
+        {creator.backgroundUrl ? (
+          <img
+            src={creator.backgroundUrl}
+            alt={`${creator.displayName} background`}
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+        ) : (
+          <div className="flex h-full items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">
+            <span className="text-4xl sm:text-6xl font-bold text-muted-foreground/20">
+              {creator.displayName[0]}
+            </span>
           </div>
+        )}
+      </div>
 
-          {/* Profile Info */}
-          <div className="border-b border-border bg-card px-6 py-6">
-            <div className="mx-auto max-w-5xl">
-              <div className="flex items-start gap-6">
-                {/* Avatar */}
-                <div className="relative -mt-16 h-32 w-32 flex-shrink-0 overflow-hidden rounded-full border-4 border-background">
-                  <img
-                    src={creator.avatarUrl}
-                    alt={creator.displayName}
-                    className="h-full w-full object-cover"
-                  />
+      {/* Profile Info */}
+      <div className="border-b border-border bg-card px-4 sm:px-6 py-4 sm:py-6">
+        <div className="mx-auto max-w-5xl">
+          <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-6">
+            {/* Avatar */}
+            <div className="relative -mt-12 sm:-mt-16 h-24 w-24 sm:h-32 sm:w-32 flex-shrink-0 overflow-hidden rounded-full border-4 border-background">
+              <img
+                src={creator.avatarUrl}
+                alt={creator.displayName}
+                className="h-full w-full object-cover"
+              />
+            </div>
+
+            {/* Info */}
+            <div className="flex-1 sm:pt-4 w-full">
+              <div className="mb-2 flex items-center gap-2">
+                <h1 className="text-2xl sm:text-3xl font-bold">
+                  {creator.displayName}
+                </h1>
+                {creator.isVerified && (
+                  <CheckCircle2 className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                )}
+              </div>
+              {creator.suinsName && (
+                <p className="mb-2 sm:mb-3 text-sm sm:text-base text-muted-foreground">
+                  {creator.suinsName}
+                </p>
+              )}
+              <p className="mb-3 sm:mb-4 text-sm sm:text-base">{creator.bio}</p>
+
+              <div className="flex flex-wrap items-center gap-3 sm:gap-6 text-xs sm:text-sm text-muted-foreground">
+                <div className="flex items-center gap-1.5">
+                  <Users className="h-4 w-4" />
+                  <span>{formatNumber(creator.followerCount)} followers</span>
                 </div>
-
-                {/* Info */}
-                <div className="flex-1 pt-4">
-                  <div className="mb-2 flex items-center gap-2">
-                    <h1 className="text-3xl font-bold">
-                      {creator.displayName}
-                    </h1>
-                    {creator.isVerified && (
-                      <CheckCircle2 className="h-6 w-6 text-primary" />
-                    )}
-                  </div>
-                  {creator.suinsName && (
-                    <p className="mb-3 text-muted-foreground">
-                      {creator.suinsName}
-                    </p>
-                  )}
-                  <p className="mb-4 max-w-2xl">{creator.bio}</p>
-
-                  <div className="flex items-center gap-6 text-sm text-muted-foreground">
-                    <div className="flex items-center gap-1.5">
-                      <Users className="h-4 w-4" />
-                      <span>{formatNumber(creator.followerCount)} followers</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <Calendar className="h-4 w-4" />
-                      <span>
-                        Joined {creator.createdAt.toLocaleDateString()}
-                      </span>
-                    </div>
-                    <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-                      {creator.category}
-                    </span>
-                  </div>
+                <div className="flex items-center gap-1.5">
+                  <Calendar className="h-4 w-4" />
+                  <span>
+                    Joined {creator.createdAt.toLocaleDateString()}
+                  </span>
                 </div>
+                <span className="rounded-full bg-primary/10 px-2 sm:px-3 py-1 text-xs font-medium text-primary">
+                  {creator.category}
+                </span>
               </div>
             </div>
           </div>
+        </div>
+      </div>
 
-          {/* Tabs & Content */}
-          <div className="mx-auto max-w-5xl px-6 py-8">
-            {/* Subscription Tiers */}
-            {tiers.length > 0 && (
-              <section className="mb-12" data-section="tiers">
-                <h2 className="mb-6 text-2xl font-semibold">
-                  Membership tiers
-                </h2>
-                <div className="grid gap-6 md:grid-cols-3">
+      {/* Tabs & Content */}
+      <div className="mx-auto max-w-5xl px-4 sm:px-6 py-6 sm:py-8">
+        {/* Subscription Tiers */}
+        {tiers.length > 0 && (
+          <section className="mb-8 sm:mb-12" data-section="tiers">
+            <h2 className="mb-4 sm:mb-6 text-xl sm:text-2xl font-semibold">
+              Membership tiers
+            </h2>
+            <div className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
                   {tiers.map((tier) => {
                     const buttonState = getTierButtonState(tier.tierId);
                     const isCurrentTier =
@@ -451,40 +434,38 @@ export default function CreatorProfilePage({ params }: PageProps) {
               </section>
             )}
 
-            {/* Empty state for no tiers */}
-            {tiers.length === 0 && (
-              <section className="mb-12">
-                <h2 className="mb-6 text-2xl font-semibold">
-                  Membership tiers
-                </h2>
-                <div className="rounded-lg border border-border bg-card p-8 text-center">
-                  <p className="text-muted-foreground">
-                    No membership tiers available yet
-                  </p>
-                </div>
-              </section>
-            )}
+        {/* Empty state for no tiers */}
+        {tiers.length === 0 && (
+          <section className="mb-8 sm:mb-12">
+            <h2 className="mb-4 sm:mb-6 text-xl sm:text-2xl font-semibold">
+              Membership tiers
+            </h2>
+            <div className="rounded-lg border border-border bg-card p-6 sm:p-8 text-center">
+              <p className="text-sm sm:text-base text-muted-foreground">
+                No membership tiers available yet
+              </p>
+            </div>
+          </section>
+        )}
 
-            {/* Recent Posts */}
-            <section>
-              <h2 className="mb-6 text-2xl font-semibold">Recent posts</h2>
-              {recentPosts.length > 0 ? (
-                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                  {recentPosts.map((item) => (
-                    <ContentCard key={item.id} content={item} />
-                  ))}
-                </div>
-              ) : (
-                <div className="rounded-lg border border-border bg-card p-8 text-center">
-                  <p className="text-muted-foreground">
-                    No content available yet
-                  </p>
-                </div>
-              )}
-            </section>
-          </div>
-        </main>
+        {/* Recent Posts */}
+        <section>
+          <h2 className="mb-4 sm:mb-6 text-xl sm:text-2xl font-semibold">Recent posts</h2>
+          {recentPosts.length > 0 ? (
+            <div className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {recentPosts.map((item) => (
+                <ContentCard key={item.id} content={item} />
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-lg border border-border bg-card p-6 sm:p-8 text-center">
+              <p className="text-sm sm:text-base text-muted-foreground">
+                No content available yet
+              </p>
+            </div>
+          )}
+        </section>
       </div>
-    </div>
+    </AdaptiveLayout>
   );
 }

@@ -118,7 +118,7 @@ export default function HomePage() {
 
   return (
     <AdaptiveLayout>
-      <main className="overflow-x-hidden p-6">
+      <main className="overflow-x-hidden p-4 sm:p-6">
         {/* Topic Filters */}
         <TopicFilters selectedTopic={selectedTopic} onTopicChange={setSelectedTopic} />
 

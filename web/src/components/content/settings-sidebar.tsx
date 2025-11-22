@@ -29,8 +29,8 @@ export function SettingsSidebar({
     formData.exclusiveFile !== null;
 
   return (
-    <aside className="w-96 shrink-0 border-l border-border bg-card">
-      <div className="sticky top-0 flex h-screen flex-col">
+    <aside className="w-full lg:w-96 shrink-0 border-t lg:border-t-0 lg:border-l border-border bg-card">
+      <div className="lg:sticky lg:top-0 flex flex-col lg:h-screen">
         {/* Top Actions */}
         <div className="border-b border-border p-4">
           <div className="space-y-2">

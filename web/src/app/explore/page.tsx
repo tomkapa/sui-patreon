@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { Sidebar } from "@/components/layout/sidebar";
-import { Header } from "@/components/layout/header";
+import { AdaptiveLayout } from "@/components/layout/adaptive-layout";
 import { CategoryCard } from "@/components/explore/category-card";
 import { ExploreCreatorCard } from "@/components/explore/creator-card";
 import { Button } from "@/components/ui/button";
@@ -66,23 +65,18 @@ export default function ExplorePage() {
   };
 
   return (
-    <div className="flex min-h-screen">
-      <Sidebar />
+    <AdaptiveLayout>
+      <main className="p-4 sm:p-6">
+        {/* Topics Section */}
+        <section className="mb-8 sm:mb-12">
+          <h2 className="mb-4 sm:mb-6 text-xl sm:text-2xl font-semibold">Explore by topic</h2>
 
-      <div className="flex-1 pl-64">
-        <Header />
-
-        <main className="p-6">
-          {/* Topics Section */}
-          <section className="mb-12">
-            <h2 className="mb-6 text-2xl font-semibold">Explore by topic</h2>
-
-            {isLoadingCreators ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              </div>
-            ) : (
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {isLoadingCreators ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : (
+            <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
                 {topics.map((topic) => {
                   const IconComponent = Icons[topic.iconName] as React.ComponentType<{
                     className?: string;
@@ -119,66 +113,65 @@ export default function ExplorePage() {
                     </button>
                   );
                 })}
-              </div>
-            )}
-          </section>
-
-          {/* Filtered Creators Section (when topic is selected) */}
-          {selectedTopic !== null && (
-            <section className="mb-12">
-              <div className="mb-6 flex items-center justify-between">
-                <h2 className="text-xl font-semibold">
-                  {topics.find(t => t.id === selectedTopic)?.displayName}
-                </h2>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleClearFilter}
-                >
-                  Clear filter
-                </Button>
-              </div>
-
-              {filteredCreators.length === 0 ? (
-                <div className="rounded-lg border border-border bg-card p-8 text-center">
-                  <p className="text-muted-foreground">
-                    No creators found in this topic
-                  </p>
-                </div>
-              ) : (
-                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                  {filteredCreators.map((creator) => (
-                    <ExploreCreatorCard key={creator.id} creator={creator} />
-                  ))}
-                </div>
-              )}
-            </section>
+            </div>
           )}
+        </section>
 
-          {/* New Creators Section */}
-          <section className="mb-12">
-            <h2 className="mb-6 text-xl font-semibold">New on SuiPatreon</h2>
+        {/* Filtered Creators Section (when topic is selected) */}
+        {selectedTopic !== null && (
+          <section className="mb-8 sm:mb-12">
+            <div className="mb-4 sm:mb-6 flex items-center justify-between">
+              <h2 className="text-lg sm:text-xl font-semibold">
+                {topics.find(t => t.id === selectedTopic)?.displayName}
+              </h2>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleClearFilter}
+              >
+                Clear filter
+              </Button>
+            </div>
 
-            {isLoadingCreators ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              </div>
-            ) : newCreators.length === 0 ? (
-              <div className="rounded-lg border border-border bg-card p-8 text-center">
+            {filteredCreators.length === 0 ? (
+              <div className="rounded-lg border border-border bg-card p-6 sm:p-8 text-center">
                 <p className="text-muted-foreground">
-                  No new creators to display
+                  No creators found in this topic
                 </p>
               </div>
             ) : (
-              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                {newCreators.map((creator) => (
+              <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+                {filteredCreators.map((creator) => (
                   <ExploreCreatorCard key={creator.id} creator={creator} />
                 ))}
               </div>
             )}
           </section>
-        </main>
-      </div>
-    </div>
+        )}
+
+        {/* New Creators Section */}
+        <section className="mb-8 sm:mb-12">
+          <h2 className="mb-4 sm:mb-6 text-lg sm:text-xl font-semibold">New on SuiPatreon</h2>
+
+          {isLoadingCreators ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : newCreators.length === 0 ? (
+            <div className="rounded-lg border border-border bg-card p-6 sm:p-8 text-center">
+              <p className="text-muted-foreground">
+                No new creators to display
+              </p>
+            </div>
+          ) : (
+            <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+              {newCreators.map((creator) => (
+                <ExploreCreatorCard key={creator.id} creator={creator} />
+              ))}
+            </div>
+          )}
+        </section>
+      </main>
+    </AdaptiveLayout>
   );
 }

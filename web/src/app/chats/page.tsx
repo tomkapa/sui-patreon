@@ -26,7 +26,7 @@ export default function ChatsPage() {
 
   return (
     <AdaptiveLayout>
-      <main className="p-6 max-w-8xl mx-auto">
+      <main className="p-4 sm:p-6 max-w-8xl mx-auto">
           {currentAccount ? (
             channelId ? (
               <Channel
@@ -34,15 +34,15 @@ export default function ChatsPage() {
                 onBack={handleBack}
               />
             ) : (
-              <div className="space-y-6">
+              <div className="space-y-4 sm:space-y-6">
                 <div>
-                  <h1 className="text-3xl font-bold tracking-tight mb-2">Messages</h1>
-                  <p className="text-muted-foreground">
+                  <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mb-2">Messages</h1>
+                  <p className="text-sm sm:text-base text-muted-foreground">
                     Secure, encrypted messaging powered by Sui and Seal
                   </p>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                   <div className="space-y-6">
                     <MessagingStatus />
                     <CreateChannel onChannelCreated={handleChannelSelect} />

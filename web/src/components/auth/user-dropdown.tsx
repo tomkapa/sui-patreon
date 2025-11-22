@@ -115,7 +115,7 @@ export function UserDropdown({ inSidebar = false }: UserDropdownProps) {
           className={
             inSidebar
               ? "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-              : "flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm transition-colors hover:bg-accent focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+              : "flex items-center gap-2 rounded-lg border border-border bg-card px-2 sm:px-3 py-2 text-sm transition-colors hover:bg-accent focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
           }
         >
           {user.avatarUrl ? (
@@ -129,7 +129,8 @@ export function UserDropdown({ inSidebar = false }: UserDropdownProps) {
               <User className="h-4 w-4" />
             </div>
           )}
-          <div className={`${inSidebar ? 'flex-1' : ''} overflow-hidden text-left`}>
+          {/* Hide name and address on mobile, show on desktop */}
+          <div className={`${inSidebar ? 'flex-1' : 'hidden sm:block'} overflow-hidden text-left`}>
             <p className="truncate text-sm font-medium text-foreground">
               {user.displayName || 'User'}
             </p>
@@ -137,7 +138,7 @@ export function UserDropdown({ inSidebar = false }: UserDropdownProps) {
               {formatAddress(user.address)}
             </p>
           </div>
-          <ChevronDown className="h-4 w-4 text-muted-foreground" />
+          <ChevronDown className="hidden sm:block h-4 w-4 text-muted-foreground" />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent

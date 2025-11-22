@@ -41,25 +41,25 @@ export function RoleSwitcher() {
 
   return (
     <>
-      <div className="flex items-center gap-2 rounded-lg border border-border bg-card p-1">
+      <div className="flex items-center gap-1 sm:gap-2 rounded-lg border border-border bg-card p-1">
         <Button
           variant={!isCreatorMode ? "default" : "ghost"}
           size="sm"
           onClick={() => handleRoleSwitch("fan")}
-          className="h-8"
+          className="h-8 px-2 sm:px-3"
         >
-          <UserCircle className="mr-2 h-4 w-4" />
-          Fan
+          <UserCircle className="h-4 w-4 sm:mr-2" />
+          <span className="hidden sm:inline">Fan</span>
         </Button>
         <Button
           variant={isCreatorMode ? "default" : "ghost"}
           size="sm"
           onClick={() => handleRoleSwitch("creator")}
-          className="h-8"
+          className="h-8 px-2 sm:px-3"
           disabled={isLoadingProfile}
         >
-          <Palette className="mr-2 h-4 w-4" />
-          Creator
+          <Palette className="h-4 w-4 sm:mr-2" />
+          <span className="hidden sm:inline">Creator</span>
         </Button>
       </div>
 

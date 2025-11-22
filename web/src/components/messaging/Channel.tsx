@@ -158,23 +158,24 @@ export function Channel({ channelId, onBack }: ChannelProps) {
   return (
     <>
       <SessionExpirationModal isOpen={isSessionExpired} />
-      <div className="flex h-[calc(100vh-8rem)] flex-col rounded-lg border bg-card">
+      <div className="flex h-[calc(100vh-8rem)] flex-col rounded-lg border bg-card relative">
         {/* Header */}
-        <div className="relative flex items-center justify-between border-b p-4">
-          <div className="flex items-center gap-3">
-            <Button variant="outline" size="sm" onClick={onBack} disabled={isSessionExpired}>
+        <div className="relative flex items-center justify-between border-b p-3 sm:p-4">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+            <Button variant="outline" size="sm" onClick={onBack} disabled={isSessionExpired} className="shrink-0">
               ← Back
             </Button>
-            <div>
-              <h3 className="font-semibold">Channel</h3>
+            <div className="min-w-0">
+              <h3 className="font-semibold text-sm sm:text-base truncate">Channel</h3>
               {currentChannel && (
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-muted-foreground truncate">
                   {formatAddress(currentChannel.id.id)}
                 </p>
               )}
             </div>
           </div>
-          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-3">
+          {/* Seal logo - Hidden on mobile, shown on larger screens */}
+          <div className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 items-center gap-3">
             <span className="text-base text-muted-foreground">Secured by</span>
             <Image
               src="/seal-logo-lighter.svg"
@@ -185,14 +186,15 @@ export function Channel({ channelId, onBack }: ChannelProps) {
             />
           </div>
           {currentChannel && (
-            <div className="rounded-full bg-green-500/10 px-2 py-1 text-xs text-green-500">
-              {currentChannel.messages_count} messages
+            <div className="rounded-full bg-green-500/10 px-2 py-1 text-xs text-green-500 shrink-0 ml-2">
+              <span className="hidden sm:inline">{currentChannel.messages_count} messages</span>
+              <span className="sm:hidden">{currentChannel.messages_count}</span>
             </div>
           )}
         </div>
 
         {/* Messages Area */}
-        <div className="flex-1 overflow-y-auto p-4">
+        <div className="flex-1 overflow-y-auto p-3 sm:p-4">
           {/* Load More Button */}
           {hasMoreMessages && (
             <div className="mb-4 text-center">

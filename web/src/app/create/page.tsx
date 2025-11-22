@@ -223,10 +223,10 @@ export default function CreatePage() {
         currentStep={publishingStep}
       />
 
-      <div className='flex min-h-screen'>
+      <div className='flex flex-col lg:flex-row min-h-screen'>
         {/* Main Content Area */}
-        <main className='flex-1 p-8'>
-          <div className='mx-auto max-w-4xl space-y-6'>
+        <main className='flex-1 p-4 sm:p-6 lg:p-8'>
+          <div className='mx-auto max-w-4xl space-y-4 sm:space-y-6'>
             {/* Title Input */}
             <div>
               <Input
@@ -234,7 +234,7 @@ export default function CreatePage() {
                 placeholder='Title'
                 value={formData.title}
                 onChange={(e) => handleFormChange({ title: e.target.value })}
-                className='text-3xl font-bold border-none bg-transparent px-0 placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0'
+                className='text-2xl sm:text-3xl font-bold border-none bg-transparent px-0 placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0'
               />
               {validationErrors.find((e) => e.field === 'title') && (
                 <p className='mt-2 text-sm text-destructive'>
@@ -249,7 +249,7 @@ export default function CreatePage() {
                 placeholder='Start writing...'
                 value={formData.content}
                 onChange={(e) => handleFormChange({ content: e.target.value })}
-                className='min-h-[400px] resize-none border-none bg-transparent px-0 text-lg placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0'
+                className='min-h-[300px] sm:min-h-[400px] resize-none border-none bg-transparent px-0 text-base sm:text-lg placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0'
               />
               {validationErrors.find((e) => e.field === 'content') && (
                 <p className='mt-2 text-sm text-destructive'>

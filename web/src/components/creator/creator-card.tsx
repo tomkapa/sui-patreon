@@ -13,7 +13,7 @@ export function CreatorCard({ creator, variant = "default" }: CreatorCardProps &
     <Link
       href={`/creator/${creator.address}`}
       className={`group/card block flex-shrink-0 overflow-hidden rounded-lg border border-border bg-card transition-all hover:border-primary/50 hover:shadow-lg ${
-        variant === "compact" ? "w-[280px]" : "w-full"
+        variant === "compact" ? "w-full sm:w-[280px]" : "w-full"
       }`}
     >
       {/* Background Image - Made larger and more prominent */}

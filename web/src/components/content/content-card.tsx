@@ -58,14 +58,14 @@ export function ContentCard({ content }: ContentCardProps) {
       </div>
 
       {/* Content Info */}
-      <div className="p-4">
-        <h3 className="mb-2 line-clamp-1 font-semibold">{content.title}</h3>
-        <p className="mb-3 line-clamp-2 text-sm text-muted-foreground">
+      <div className="p-3 sm:p-4">
+        <h3 className="mb-1.5 sm:mb-2 line-clamp-1 text-sm sm:text-base font-semibold">{content.title}</h3>
+        <p className="mb-2 sm:mb-3 line-clamp-2 text-xs sm:text-sm text-muted-foreground">
           {content.description}
         </p>
 
         {/* Stats */}
-        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+        <div className="flex items-center gap-3 sm:gap-4 text-xs text-muted-foreground flex-wrap">
           <div className="flex items-center gap-1">
             <Eye className="h-3.5 w-3.5" />
             <span>{formatNumber(content.viewCount)}</span>
@@ -74,7 +74,7 @@ export function ContentCard({ content }: ContentCardProps) {
             <Heart className="h-3.5 w-3.5" />
             <span>{formatNumber(content.likeCount)}</span>
           </div>
-          <span>{formatRelativeTime(content.createdAt)}</span>
+          <span className="hidden sm:inline">{formatRelativeTime(content.createdAt)}</span>
         </div>
       </div>
     </div>
